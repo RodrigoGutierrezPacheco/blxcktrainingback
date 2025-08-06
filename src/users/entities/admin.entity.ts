@@ -1,7 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert } from 'typeorm';
-import * as bcrypt from 'bcrypt';
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
-@Entity('admins') // Especifica el nombre de la tabla
+@Entity("admins") // Especifica el nombre de la tabla
 export class Admin {
   @PrimaryGeneratedColumn()
   id: number;
@@ -15,11 +14,6 @@ export class Admin {
   @Column()
   password: string;
 
-  @Column({ default: 'admin' })
+  @Column({ default: "admin" })
   role: string;
-
-  @BeforeInsert()
-  async hashPassword() {
-    this.password = await bcrypt.hash(this.password, 10);
-  }
 }

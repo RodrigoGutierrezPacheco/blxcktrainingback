@@ -1,29 +1,59 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ConfigService } from '@nestjs/config';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { ConfigService } from "@nestjs/config";
+import { ValidationPipe } from "@nestjs/common";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  // ✅ Configuración segura de CORS (recomendado para producción)
+  // Configuración de CORS
   app.enableCors({
-    origin: configService.get<string>('ALLOWED_ORIGINS')?.split(',') || [
-      'http://localhost:5173', // Frontend local (Vite/React)
-      'https://tudominio.com', // Tu dominio en producción
+    origin: configService.get<string>("ALLOWED_ORIGINS")?.split(",") || [
+      "http://localhost:5173",
+      "https://tudominio.com",
     ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Si necesitas cookies/tokens
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
   });
 
-  const PORT = configService.get<number>('PORT') || 8000;
-  const DB_NAME = configService.get<string>('DB_NAME') || 'blacktraining_db';
-  const DB_PORT = configService.get<number>('DB_PORT') || 5432;
+  // Configuración de Swagger
+  const config = new DocumentBuilder()
+    .setTitle("BLXCK Training API")
+    .setDescription("API para el sistema BLXCK Training")
+    .setVersion("1.0")
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup("api", app, document);
 
-  await app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-    console.log(`📦 Base de datos: ${DB_NAME}`);
-    console.log(`🔌 Puerto de la base de datos: ${DB_PORT}`);
-  });
+  // Configuración global de validación
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    })
+  );
+
+  const PORT = configService.get<number>("PORT") || 8000;
+
+  // Solución: Manejo explícito de la promesa
+  await app
+    .listen(PORT)
+    .then(() => {
+      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+      console.log(`📚 Documentación Swagger en http://localhost:${PORT}/api`);
+    })
+    .catch((error) => {
+      console.error("Error al iniciar el servidor:", error);
+      process.exit(1);
+    });
 }
-bootstrap();
+
+// Inicio de la aplicación con manejo de errores
+bootstrap().catch((err) => {
+  console.error("Error durante la inicialización:", err);
+  process.exit(1);
+});
