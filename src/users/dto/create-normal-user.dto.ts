@@ -1,18 +1,19 @@
 import { IsEmail, IsString, MinLength, IsNotEmpty, IsOptional } from 'class-validator';
+import { VALIDATION_MESSAGES } from '../../common/constants/validation-messages';
 
 export class CreateNormalUserDto {
-  @IsString()
-  @IsNotEmpty()
+  @IsString({ message: VALIDATION_MESSAGES.FULL_NAME_IS_STRING })
+  @IsNotEmpty({ message: VALIDATION_MESSAGES.FULL_NAME_IS_NOT_EMPTY })
   fullName: string;
 
-  @IsEmail()
+  @IsEmail({}, { message: VALIDATION_MESSAGES.EMAIL_IS_EMAIL })
   email: string;
 
-  @IsString()
-  @MinLength(8)
+  @IsString({ message: VALIDATION_MESSAGES.PASSWORD_IS_STRING })
+  @MinLength(8, { message: VALIDATION_MESSAGES.PASSWORD_MIN_LENGTH_8 })
   password: string;
 
-  @IsString()
+  @IsString({ message: VALIDATION_MESSAGES.ROUTINE_IS_STRING })
   routine: string;
 
   @IsOptional()

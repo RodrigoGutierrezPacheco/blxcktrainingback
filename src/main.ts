@@ -1,8 +1,9 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { ConfigService } from "@nestjs/config";
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe, BadRequestException } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { ValidationInterceptor } from "./common/interceptors/validation.interceptor";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -28,14 +29,32 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api", app, document);
 
-  // Configuración global de validación
+  // Configuración global de validación con mensajes en español
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map(error => {
+          const constraints = error.constraints;
+          if (constraints) {
+            return Object.values(constraints).join(', ');
+          }
+          return `${error.property} tiene un valor inválido`;
+        });
+        
+        return new BadRequestException({
+          message: 'Error de validación',
+          errors: messages,
+          statusCode: 400
+        });
+      },
     })
   );
+
+  // Aplicar interceptor de validación global
+  app.useGlobalInterceptors(new ValidationInterceptor());
 
   const PORT = configService.get<number>("PORT") || 8000;
 
