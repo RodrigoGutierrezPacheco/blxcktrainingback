@@ -115,6 +115,15 @@ export class UsersController {
     return this.usersService.getTrainerById(trainerId);
   }
 
+  @Get('trainer/profile/me')
+  @UseGuards(JwtGuard)
+  @HttpCode(HttpStatus.OK)
+  async getMyTrainerProfile(@Request() req: RequestWithUser) {
+    // El ID del entrenador viene del token JWT
+    const trainerId = req.user.sub;
+    return this.usersService.getTrainerProfile(trainerId);
+  }
+
   @Get(':userId/trainer')
   @HttpCode(HttpStatus.OK)
   async getTrainerByUser(@Param('userId') userId: string) {

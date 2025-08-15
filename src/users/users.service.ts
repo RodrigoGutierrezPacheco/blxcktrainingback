@@ -242,4 +242,18 @@ export class UsersService {
     const { password, ...trainerInfo } = trainer;
     return trainerInfo;
   }
+
+  async getTrainerProfile(trainerId: string): Promise<Partial<Trainer>> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+    console.log(trainer)
+    // Retornar el entrenador sin la contraseña por seguridad
+    const { password, ...trainerInfo } = trainer;
+    return trainerInfo;
+  }
 }
