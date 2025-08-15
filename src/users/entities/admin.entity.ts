@@ -3,15 +3,13 @@ import {
   PrimaryGeneratedColumn, 
   Column, 
   CreateDateColumn, 
-  UpdateDateColumn,
-  BeforeInsert 
+  UpdateDateColumn
 } from "typeorm";
-import { v4 as uuidv4 } from 'uuid';
 
-@Entity("admins") // Especifica el nombre de la tabla
+@Entity("admins")
 export class Admin {
-  @PrimaryGeneratedColumn('uuid') // Cambiado a UUID
-  id: string; // Cambiado de number a string
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({ length: 100 })
   fullName: string;
@@ -25,16 +23,9 @@ export class Admin {
   @Column({ default: "admin" })
   role: string;
 
-  @CreateDateColumn() // Nuevo campo automático
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn() // Nuevo campo automático
+  @UpdateDateColumn()
   updatedAt: Date;
-
-  @BeforeInsert()
-  generateUuid() {
-    if (!this.id) {
-      this.id = uuidv4(); // Generar UUID si no existe
-    }
-  }
 }

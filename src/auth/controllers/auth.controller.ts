@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Controller, Post, Body, UsePipes } from "@nestjs/common";
 import { AuthService } from "../auth.service";
 import { RegisterDto } from "src/users/dto/register.dto";
@@ -68,11 +67,7 @@ export class AuthController {
       loginDto.email,
       loginDto.password
     );
-    const token = await this.authService.generateToken({
-      ...user,
-      password: "", // Añadir propiedad faltante
-      hashPassword: () => Promise.resolve(), // Añadir método faltante
-    });
+    const token = await this.authService.generateToken(user);
     return {
       status: "success",
       message: "User logged in successfully",
@@ -95,11 +90,7 @@ export class AuthController {
       loginDto.email,
       loginDto.password
     );
-    const token = await this.authService.generateToken({
-      ...trainer,
-      password: "", // Añadir propiedad faltante
-      hashPassword: () => Promise.resolve(), // Añadir método faltante
-    });
+    const token = await this.authService.generateToken(trainer);
     return {
       status: "success",
       message: "Trainer logged in successfully",
@@ -118,11 +109,7 @@ export class AuthController {
       loginDto.email,
       loginDto.password
     );
-    const token = await this.authService.generateToken({
-      ...admin,
-      password: "", // Añadir propiedad faltante
-      hashPassword: () => Promise.resolve(), // Añadir método faltante
-    });
+    const token = await this.authService.generateToken(admin);
     return {
       status: "success",
       message: "Admin logged in successfully",
