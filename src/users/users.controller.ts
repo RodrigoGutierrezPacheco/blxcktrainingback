@@ -1,8 +1,10 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, Request, ForbiddenException, UnauthorizedException, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, Request, ForbiddenException, UnauthorizedException, Get, Query, Delete } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { GetUserByEmailDto } from './dto/get-user-by-email.dto';
+import { AssignTrainerDto } from './dto/assign-trainer.dto';
+import { GetUsersByTrainerDto } from './dto/get-users-by-trainer.dto';
 import { JwtGuard } from '../auth/guards/jwt/jwt.guard';
 
 interface RequestWithUser extends Request {
@@ -87,5 +89,42 @@ export class UsersController {
     }
 
     return await this.usersService.updateUser(userId, updateDto);
+  }
+
+  @Post('assign-trainer')
+  @HttpCode(HttpStatus.OK)
+  async assignTrainerToUser(@Body() assignDto: AssignTrainerDto) {
+    return this.usersService.assignTrainerToUser(assignDto);
+  }
+
+  @Get('by-trainer/:trainerId')
+  @HttpCode(HttpStatus.OK)
+  async getUsersByTrainer(@Param() params: GetUsersByTrainerDto) {
+    return this.usersService.getUsersByTrainer(params.trainerId);
+  }
+
+  @Get('with-trainers')
+  @HttpCode(HttpStatus.OK)
+  async getUsersWithTrainers() {
+    return this.usersService.getUsersWithTrainers();
+  }
+
+  @Get('trainer/:trainerId')
+  @HttpCode(HttpStatus.OK)
+  async getTrainerById(@Param('trainerId') trainerId: string) {
+    return this.usersService.getTrainerById(trainerId);
+  }
+
+  @Get(':userId/trainer')
+  @HttpCode(HttpStatus.OK)
+  async getTrainerByUser(@Param('userId') userId: string) {
+    return this.usersService.getTrainerByUser(userId);
+  }
+
+  @Delete(':userId/trainer')
+  @HttpCode(HttpStatus.OK)
+  async removeTrainerFromUser(@Param('userId') userId: string) {
+    await this.usersService.removeTrainerFromUser(userId);
+    return { message: 'Entrenador removido del usuario exitosamente' };
   }
 }

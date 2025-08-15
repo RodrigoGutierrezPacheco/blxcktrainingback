@@ -3,8 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserBase } from './entities/user-base.entity';
 import { NormalUser } from './entities/normal-user.entity';
+import { Trainer } from './entities/trainer.entity';
+import { UserTrainer } from './entities/user-trainer.entity';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 
@@ -16,6 +19,12 @@ export class UsersService {
     
     @InjectRepository(NormalUser)
     private normalUserRepository: Repository<NormalUser>,
+
+    @InjectRepository(Trainer)
+    private trainerRepository: Repository<Trainer>,
+
+    @InjectRepository(UserTrainer)
+    private userTrainerRepository: Repository<UserTrainer>,
 
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -116,5 +125,121 @@ export class UsersService {
     // Retornar el usuario sin la contraseña por seguridad
     const { password, ...result } = user;
     return result as User;
+  }
+
+  async assignTrainerToUser(assignDto: AssignTrainerDto): Promise<UserTrainer> {
+    // Verificar que el usuario existe
+    const user = await this.userRepository.findOne({
+      where: { id: assignDto.userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Verificar que el entrenador existe
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: assignDto.trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Verificar si el usuario ya tiene un entrenador activo
+    const existingAssignment = await this.userTrainerRepository.findOne({
+      where: { 
+        user: { id: assignDto.userId },
+        isActive: true 
+      }
+    });
+
+    if (existingAssignment) {
+      // Desactivar la asignación anterior
+      existingAssignment.isActive = false;
+      await this.userTrainerRepository.save(existingAssignment);
+    }
+
+    // Actualizar el campo trainerId en la entidad User
+    user.trainerId = assignDto.trainerId;
+    await this.userRepository.save(user);
+
+    // Crear nueva asignación
+    const userTrainer = this.userTrainerRepository.create({
+      user,
+      trainer,
+      assignedAt: new Date(),
+      isActive: true
+    });
+
+    return this.userTrainerRepository.save(userTrainer);
+  }
+
+  async getUsersByTrainer(trainerId: string): Promise<User[]> {
+    const assignments = await this.userTrainerRepository.find({
+      where: { 
+        trainer: { id: trainerId },
+        isActive: true 
+      },
+      relations: ['user']
+    });
+
+    return assignments.map(assignment => assignment.user);
+  }
+
+  async getTrainerByUser(userId: string): Promise<Trainer | null> {
+    const assignment = await this.userTrainerRepository.findOne({
+      where: { 
+        user: { id: userId },
+        isActive: true 
+      },
+      relations: ['trainer']
+    });
+
+    return assignment ? assignment.trainer : null;
+  }
+
+  async removeTrainerFromUser(userId: string): Promise<void> {
+    const assignment = await this.userTrainerRepository.findOne({
+      where: { 
+        user: { id: userId },
+        isActive: true 
+      }
+    });
+
+    if (assignment) {
+      assignment.isActive = false;
+      await this.userTrainerRepository.save(assignment);
+    }
+
+    // Limpiar el campo trainerId en la entidad User
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (user && user.trainerId) {
+      user.trainerId = null;
+      await this.userRepository.save(user);
+    }
+  }
+
+  async getUsersWithTrainers(): Promise<User[]> {
+    return this.userRepository.find({
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'createdAt', 'updatedAt']
+    });
+  }
+
+  async getTrainerById(trainerId: string): Promise<Partial<Trainer>> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Retornar el entrenador sin la contraseña por seguridad
+    const { password, ...trainerInfo } = trainer;
+    return trainerInfo;
   }
 }

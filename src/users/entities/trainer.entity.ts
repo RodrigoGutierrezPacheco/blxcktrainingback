@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from "typeorm";
+import { UserTrainer } from "./user-trainer.entity";
 
 @Entity()
 export class Trainer {
@@ -38,4 +40,7 @@ export class Trainer {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => UserTrainer, userTrainer => userTrainer.trainer)
+  userAssignments: UserTrainer[];
 }

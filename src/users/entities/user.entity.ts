@@ -3,8 +3,10 @@ import {
   PrimaryGeneratedColumn, 
   Column, 
   CreateDateColumn, 
-  UpdateDateColumn 
+  UpdateDateColumn,
+  OneToMany
 } from 'typeorm';
+import { UserTrainer } from './user-trainer.entity';
 
 @Entity()
 export class User {
@@ -42,9 +44,15 @@ export class User {
   @Column({ type: 'text', nullable: true })
   healthIssues?: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  trainerId: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => UserTrainer, userTrainer => userTrainer.user)
+  trainerAssignments: UserTrainer[];
 }

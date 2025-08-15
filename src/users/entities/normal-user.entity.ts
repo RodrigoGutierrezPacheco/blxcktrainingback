@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 import { UserBase } from './user-base.entity';
+import { UserTrainer } from './user-trainer.entity';
 
 @Entity()
 export class NormalUser {
@@ -15,4 +16,10 @@ export class NormalUser {
 
   @Column({ type: 'json', nullable: true })
   basicInfo: Record<string, any>;
+
+  @Column({ type: 'uuid', nullable: true })
+  trainerId: string | null;
+
+  @OneToMany(() => UserTrainer, userTrainer => userTrainer.user)
+  trainerAssignments: UserTrainer[];
 }
