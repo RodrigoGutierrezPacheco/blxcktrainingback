@@ -91,9 +91,9 @@ El endpoint de actualización permite editar los siguientes campos:
 ### Información Personal
 - `fullName` - Nombre completo (2-100 caracteres)
 - `dateOfBirth` - Fecha de nacimiento (formato YYYY-MM-DD)
-- `age` - Edad (1-150 años)
-- `weight` - Peso en kg (20-500 kg)
-- `height` - Altura en cm (100-300 cm)
+- `age` - Edad (0-200 años)
+- `weight` - Peso en kg (0-1000 kg)
+- `height` - Altura en cm (0-500 cm)
 
 ### Seguridad y Salud
 - `password` - Nueva contraseña (mínimo 6 caracteres)

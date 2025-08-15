@@ -105,4 +105,16 @@ export class UsersService {
     const { password, ...result } = updatedUser;
     return result as User;
   }
+
+  async getUserByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Retornar el usuario sin la contraseña por seguridad
+    const { password, ...result } = user;
+    return result as User;
+  }
 }
