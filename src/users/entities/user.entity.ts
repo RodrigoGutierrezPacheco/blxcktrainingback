@@ -36,6 +36,12 @@ export class User {
   @Column({ type: 'text', nullable: true })
   chronicDiseases?: string;
 
+  @Column({ type: 'date', nullable: true })
+  dateOfBirth?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  healthIssues?: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

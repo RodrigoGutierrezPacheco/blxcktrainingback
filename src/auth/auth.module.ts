@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './controllers/auth.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -7,21 +8,24 @@ import { Trainer } from '../users/entities/trainer.entity';
 import { Admin } from '../users/entities/admin.entity';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
+    ConfigModule,
+    PassportModule,
     TypeOrmModule.forFeature([User, Trainer, Admin]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('JWT_SECRET') || 'blxcktraining-super-secret-jwt-key-2024-change-in-production',
         signOptions: { expiresIn: '1d' },
       }),
       inject: [ConfigService],
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}
