@@ -225,7 +225,7 @@ export class UsersService {
 
   async getUsersWithTrainers(): Promise<User[]> {
     return this.userRepository.find({
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
     });
   }
 
@@ -259,13 +259,54 @@ export class UsersService {
 
   async findUserById(userId: string): Promise<User | null> {
     return this.userRepository.findOne({
-      where: { id: userId }
+      where: { id: userId },
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
     });
   }
 
   async findTrainerById(trainerId: string): Promise<Trainer | null> {
     return this.trainerRepository.findOne({
       where: { id: trainerId }
+    });
+  }
+
+  async updateUserRoutineStatus(userId: string, hasRoutine: boolean): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.hasRoutine = hasRoutine;
+    await this.userRepository.save(user);
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find({
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'hasRoutine', 'createdAt', 'updatedAt']
+    });
+  }
+
+  async getUsersWithRoutineDetails(): Promise<User[]> {
+    return this.userRepository.find({
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt'],
+      order: { hasRoutine: 'DESC', fullName: 'ASC' }
+    });
+  }
+
+  async getUsersWithoutRoutine(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { hasRoutine: false },
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
+    });
+  }
+
+  async getUsersWithRoutine(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { hasRoutine: true },
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
     });
   }
 }

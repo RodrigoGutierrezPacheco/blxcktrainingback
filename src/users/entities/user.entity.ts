@@ -47,6 +47,9 @@ export class User {
   @Column({ type: 'uuid', nullable: true })
   trainerId: string | null;
 
+  @Column({ type: 'boolean', default: false, comment: 'Indica si el usuario tiene rutina asignada' })
+  hasRoutine: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

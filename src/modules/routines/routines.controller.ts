@@ -88,4 +88,29 @@ export class RoutinesController {
   ) {
     return this.routinesService.removeUserRoutine(userId, routineId);
   }
+
+  @Post('sync-users-routine-status')
+  syncAllUsersRoutineStatus() {
+    return this.routinesService.syncAllUsersRoutineStatus();
+  }
+
+  @Get('users/with-routine-status')
+  getUsersWithRoutineStatus() {
+    return this.routinesService.findAll();
+  }
+
+  @Get('users/with-routine-details')
+  getUsersWithRoutineDetails() {
+    return this.routinesService.getUsersWithRoutineDetails();
+  }
+
+  @Get('users/without-routine')
+  getUsersWithoutRoutine() {
+    return this.routinesService.getUsersWithoutRoutine();
+  }
+
+  @Get('users/with-routine')
+  getUsersWithRoutine() {
+    return this.routinesService.getUsersWithRoutine();
+  }
 }

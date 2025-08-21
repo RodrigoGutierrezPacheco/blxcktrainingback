@@ -10,6 +10,7 @@ import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { UsersService } from '../../users/users.service';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class RoutinesService {
@@ -208,7 +209,12 @@ export class RoutinesService {
       isActive: true,
     });
 
-    return this.userRoutineRepository.save(userRoutine);
+    const savedUserRoutine = await this.userRoutineRepository.save(userRoutine);
+
+    // Actualizar la columna hasRoutine del usuario
+    await this.usersService.updateUserRoutineStatus(assignRoutineDto.user_id, true);
+
+    return savedUserRoutine;
   }
 
   async getUserRoutines(userId: string): Promise<UserRoutine[]> {
@@ -248,6 +254,19 @@ export class RoutinesService {
     userRoutine.isActive = false;
     userRoutine.endDate = new Date();
     await this.userRoutineRepository.save(userRoutine);
+
+    // Verificar si el usuario tiene otras rutinas activas
+    const activeRoutines = await this.userRoutineRepository.count({
+      where: {
+        user_id: userId,
+        isActive: true,
+      },
+    });
+
+    // Si no tiene rutinas activas, actualizar hasRoutine a false
+    if (activeRoutines === 0) {
+      await this.usersService.updateUserRoutineStatus(userId, false);
+    }
   }
 
   async removeUserRoutine(userId: string, routineId: string): Promise<void> {
@@ -263,5 +282,51 @@ export class RoutinesService {
     }
 
     await this.userRoutineRepository.remove(userRoutine);
+
+    // Verificar si el usuario tiene otras rutinas activas
+    const activeRoutines = await this.userRoutineRepository.count({
+      where: {
+        user_id: userId,
+        isActive: true,
+      },
+    });
+
+    // Si no tiene rutinas activas, actualizar hasRoutine a false
+    if (activeRoutines === 0) {
+      await this.usersService.updateUserRoutineStatus(userId, false);
+    }
+  }
+
+  // Método para sincronizar el estado de hasRoutine para todos los usuarios
+  async syncAllUsersRoutineStatus(): Promise<void> {
+    // Obtener todos los usuarios
+    const users = await this.usersService.findAll();
+    
+    for (const user of users) {
+      // Contar rutinas activas del usuario
+      const activeRoutines = await this.userRoutineRepository.count({
+        where: {
+          user_id: user.id,
+          isActive: true,
+        },
+      });
+
+      // Actualizar el estado hasRoutine
+      const hasRoutine = activeRoutines > 0;
+      await this.usersService.updateUserRoutineStatus(user.id, hasRoutine);
+    }
+  }
+
+  // Métodos para obtener usuarios con diferentes filtros de rutina
+  getUsersWithRoutineDetails(): Promise<User[]> {
+    return this.usersService.getUsersWithRoutineDetails();
+  }
+
+  getUsersWithoutRoutine(): Promise<User[]> {
+    return this.usersService.getUsersWithoutRoutine();
+  }
+
+  getUsersWithRoutine(): Promise<User[]> {
+    return this.usersService.getUsersWithRoutine();
   }
 }
