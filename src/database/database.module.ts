@@ -7,6 +7,11 @@ import { Admin } from "src/users/entities/admin.entity";
 import { NormalUser } from "src/users/entities/normal-user.entity";
 import { UserBase } from "src/users/entities/user-base.entity";
 import { UserTrainer } from "src/users/entities/user-trainer.entity";
+import { Routine } from "src/modules/routines/entities/routine.entity";
+import { Week } from "src/modules/routines/entities/week.entity";
+import { Day } from "src/modules/routines/entities/day.entity";
+import { Exercise } from "src/modules/routines/entities/exercise.entity";
+import { UserRoutine } from "src/modules/routines/entities/user-routine.entity";
 
 @Module({
   imports: [
@@ -20,7 +25,19 @@ import { UserTrainer } from "src/users/entities/user-trainer.entity";
         username: configService.get<string>("DB_USERNAME", "postgres"),
         password: configService.get<string>("DB_PASSWORD"),
         database: configService.get<string>("DB_NAME", "blxcktraining_db"),
-        entities: [User, Trainer, Admin, NormalUser, UserBase, UserTrainer],
+        entities: [
+          User, 
+          Trainer, 
+          Admin, 
+          NormalUser, 
+          UserBase, 
+          UserTrainer,
+          Routine,
+          Week,
+          Day,
+          Exercise,
+          UserRoutine
+        ],
         synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
         logging: configService.get<boolean>("DB_LOGGING", false),
       }),

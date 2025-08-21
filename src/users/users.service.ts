@@ -256,4 +256,16 @@ export class UsersService {
     const { password, ...trainerInfo } = trainer;
     return trainerInfo;
   }
+
+  async findUserById(userId: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id: userId }
+    });
+  }
+
+  async findTrainerById(trainerId: string): Promise<Trainer | null> {
+    return this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+  }
 }

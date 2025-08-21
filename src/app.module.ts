@@ -5,13 +5,15 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RoutinesModule } from './modules/routines/routines.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     DatabaseModule,
     AuthModule,
-    UsersModule
+    UsersModule,
+    RoutinesModule
   ],
   controllers: [AppController],
   providers: [AppService],
