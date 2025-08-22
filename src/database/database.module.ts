@@ -12,6 +12,7 @@ import { Week } from "src/modules/routines/entities/week.entity";
 import { Day } from "src/modules/routines/entities/day.entity";
 import { Exercise } from "src/modules/routines/entities/exercise.entity";
 import { UserRoutine } from "src/modules/routines/entities/user-routine.entity";
+import { Plan } from "src/modules/plans/entities/plan.entity";
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { UserRoutine } from "src/modules/routines/entities/user-routine.entity";
           Week,
           Day,
           Exercise,
-          UserRoutine
+          UserRoutine,
+          Plan
         ],
         synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
         logging: configService.get<boolean>("DB_LOGGING", false),
