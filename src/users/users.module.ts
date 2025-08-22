@@ -7,10 +7,11 @@ import { UserBase } from './entities/user-base.entity';
 import { User } from './entities/user.entity';
 import { Trainer } from './entities/trainer.entity';
 import { UserTrainer } from './entities/user-trainer.entity';
+import { Admin } from './entities/admin.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserBase, NormalUser, User, Trainer, UserTrainer]),
+    TypeOrmModule.forFeature([UserBase, NormalUser, User, Trainer, UserTrainer, Admin]),
   ],
   controllers: [UsersController],
   providers: [UsersService],

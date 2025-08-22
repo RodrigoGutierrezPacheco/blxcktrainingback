@@ -28,8 +28,13 @@ export class RoutinesController {
   }
 
   @Get()
-  findAll() {
+  async findAll() {
     return this.routinesService.findAll();
+  }
+
+  @Get('all')
+  async findAllIncludingInactive() {
+    return this.routinesService.findAllIncludingInactive();
   }
 
   @Get('trainer/:trainerId')

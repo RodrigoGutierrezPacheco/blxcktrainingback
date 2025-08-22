@@ -104,9 +104,104 @@ export class UsersController {
   }
 
   @Get('with-trainers')
-  @HttpCode(HttpStatus.OK)
   async getUsersWithTrainers() {
     return this.usersService.getUsersWithTrainers();
+  }
+
+  @Get('admins')
+  async getAllAdmins() {
+    return this.usersService.findAllAdmins();
+  }
+
+  @Get('trainers')
+  async getAllTrainers() {
+    return this.usersService.findAllTrainers();
+  }
+
+  @Get('normal')
+  async getAllNormalUsers() {
+    return this.usersService.findAllNormalUsers();
+  }
+
+  @Get('active')
+  async getActiveUsers() {
+    return this.usersService.findActiveUsers();
+  }
+
+  @Get('inactive')
+  async getInactiveUsers() {
+    return this.usersService.findInactiveUsers();
+  }
+
+  @Get(':id')
+  async getUserById(@Param('id') id: string) {
+    return this.usersService.findUserById(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtGuard)
+  async deleteUser(
+    @Param('id') userId: string,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden eliminar usuarios
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden eliminar usuarios');
+    }
+
+    await this.usersService.deleteUser(userId);
+    return { message: 'Usuario eliminado exitosamente' };
+  }
+
+  @Patch(':id/activate')
+  @UseGuards(JwtGuard)
+  async activateUser(
+    @Param('id') userId: string,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden activar usuarios
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden activar usuarios');
+    }
+
+    await this.usersService.activateUser(userId);
+    return { message: 'Usuario activado exitosamente' };
+  }
+
+  @Patch(':id/toggle-status')
+  @UseGuards(JwtGuard)
+  async toggleUserStatus(
+    @Param('id') userId: string,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden cambiar el status de usuarios
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden cambiar el status de usuarios');
+    }
+
+    const result = await this.usersService.toggleUserStatus(userId);
+    return { 
+      message: `Status del usuario cambiado exitosamente a ${result.isActive ? 'activo' : 'inactivo'}`,
+      isActive: result.isActive
+    };
   }
 
   @Get('trainer/:trainerId')

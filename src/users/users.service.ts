@@ -10,6 +10,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { Admin } from './entities/admin.entity';
 
 @Injectable()
 export class UsersService {
@@ -28,6 +29,9 @@ export class UsersService {
 
     @InjectRepository(User)
     private userRepository: Repository<User>,
+
+    @InjectRepository(Admin)
+    private adminRepository: Repository<Admin>,
   ) {}
 
   async createNormalUser(createDto: CreateNormalUserDto): Promise<NormalUser> {
@@ -260,7 +264,7 @@ export class UsersService {
   async findUserById(userId: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'dateOfBirth', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
     });
   }
 
@@ -285,13 +289,89 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.userRepository.find({
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'hasRoutine', 'createdAt', 'updatedAt']
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'weight',
+        'height',
+        'hasRoutine',
+        'isActive',
+        'createdAt',
+        'updatedAt'
+      ]
     });
+  }
+
+  async findAllAdmins(): Promise<Admin[]> {
+    return this.adminRepository.find({
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'createdAt',
+        'updatedAt'
+      ]
+    });
+  }
+
+  async findAllTrainers(): Promise<Trainer[]> {
+    return this.trainerRepository.find({
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'phone',
+        'createdAt',
+        'updatedAt'
+      ]
+    });
+  }
+
+  async findAllNormalUsers(): Promise<User[]> {
+    const users = await this.userRepository.find({
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'weight',
+        'height',
+        'trainerId',
+        'hasRoutine',
+        'isActive',
+        'createdAt',
+        'updatedAt'
+      ],
+      order: { fullName: 'ASC' }
+    });
+
+    // Para cada usuario, obtener la información del entrenador si tiene uno
+    const usersWithTrainerInfo = await Promise.all(
+      users.map(async (user) => {
+        if (user.trainerId) {
+          const trainer = await this.trainerRepository.findOne({
+            where: { id: user.trainerId },
+            select: ['id', 'fullName', 'email', 'role', 'age', 'phone', 'createdAt', 'updatedAt']
+          });
+          return { ...user, trainer };
+        }
+        return { ...user, trainer: null };
+      })
+    );
+
+    return usersWithTrainerInfo;
   }
 
   async getUsersWithRoutineDetails(): Promise<User[]> {
     return this.userRepository.find({
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt'],
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
       order: { hasRoutine: 'DESC', fullName: 'ASC' }
     });
   }
@@ -299,14 +379,95 @@ export class UsersService {
   async getUsersWithoutRoutine(): Promise<User[]> {
     return this.userRepository.find({
       where: { hasRoutine: false },
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
     });
   }
 
   async getUsersWithRoutine(): Promise<User[]> {
     return this.userRepository.find({
       where: { hasRoutine: true },
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
     });
+  }
+
+  async findActiveUsers(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { isActive: true },
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'weight',
+        'height',
+        'hasRoutine',
+        'isActive',
+        'createdAt',
+        'updatedAt'
+      ]
+    });
+  }
+
+  async findInactiveUsers(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { isActive: false },
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'weight',
+        'height',
+        'hasRoutine',
+        'isActive',
+        'createdAt',
+        'updatedAt'
+      ]
+    });
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Soft delete: cambiar status a false en lugar de eliminar
+    user.isActive = false;
+    await this.userRepository.save(user);
+  }
+
+  async activateUser(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    user.isActive = true;
+    await this.userRepository.save(user);
+  }
+
+  async toggleUserStatus(userId: string): Promise<{ isActive: boolean }> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Cambiar el status: si es true pasa a false, si es false pasa a true
+    user.isActive = !user.isActive;
+    await this.userRepository.save(user);
+
+    return { isActive: user.isActive };
   }
 }

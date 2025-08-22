@@ -89,7 +89,38 @@ export class RoutinesService {
 
   async findAll(): Promise<Routine[]> {
     return this.routineRepository.find({
-      relations: ['trainer', 'weeks', 'weeks.days', 'weeks.days.exercises'],
+      where: { isActive: true },
+      relations: ['weeks', 'weeks.days', 'weeks.days.exercises'],
+      order: {
+        createdAt: 'DESC',
+        weeks: {
+          weekNumber: 'ASC',
+          days: {
+            dayNumber: 'ASC',
+            exercises: {
+              order: 'ASC'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  async findAllIncludingInactive(): Promise<Routine[]> {
+    return this.routineRepository.find({
+      relations: ['weeks', 'weeks.days', 'weeks.days.exercises'],
+      order: {
+        createdAt: 'DESC',
+        weeks: {
+          weekNumber: 'ASC',
+          days: {
+            dayNumber: 'ASC',
+            exercises: {
+              order: 'ASC'
+            }
+          }
+        }
+      }
     });
   }
 

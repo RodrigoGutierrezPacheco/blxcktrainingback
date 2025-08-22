@@ -50,6 +50,9 @@ export class User {
   @Column({ type: 'boolean', default: false, comment: 'Indica si el usuario tiene rutina asignada' })
   hasRoutine: boolean;
 
+  @Column({ type: 'boolean', default: true, comment: 'Indica si el usuario está activo (soft delete)' })
+  isActive: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
