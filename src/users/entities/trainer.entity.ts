@@ -35,6 +35,21 @@ export class Trainer {
   @Column({ type: "text", nullable: true })
   documents?: string;
 
+  @Column({ type: 'boolean', default: true, comment: 'Indica si el entrenador está activo' })
+  isActive: boolean;
+
+  @Column({ type: 'boolean', default: false, comment: 'Indica si el entrenador está verificado' })
+  isVerified: boolean;
+
+  @Column({ type: 'varchar', length: 13, nullable: true, comment: 'RFC del entrenador' })
+  rfc?: string;
+
+  @Column({ type: 'varchar', length: 18, nullable: true, comment: 'CURP del entrenador' })
+  curp?: string;
+
+  @Column({ type: 'date', nullable: true, comment: 'Fecha de nacimiento del entrenador' })
+  dateOfBirth: Date;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, 
 import { UsersService } from './users.service';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { GetUserByEmailDto } from './dto/get-user-by-email.dto';
 import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { GetUsersByTrainerDto } from './dto/get-users-by-trainer.dto';
@@ -204,10 +205,83 @@ export class UsersController {
     };
   }
 
+  @Patch('trainer/:trainerId/toggle-status')
+  @UseGuards(JwtGuard)
+  async toggleTrainerStatus(
+    @Param('trainerId') trainerId: string,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden cambiar el status de entrenadores
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden cambiar el status de entrenadores');
+    }
+
+    const result = await this.usersService.toggleTrainerStatus(trainerId);
+    return { 
+      message: `Status del entrenador cambiado exitosamente a ${result.isActive ? 'activo' : 'inactivo'}`,
+      isActive: result.isActive
+    };
+  }
+
+  @Patch('trainer/:trainerId/toggle-verification')
+  @UseGuards(JwtGuard)
+  async toggleTrainerVerification(
+    @Param('trainerId') trainerId: string,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden cambiar el status de verificación de entrenadores
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden cambiar el status de verificación de entrenadores');
+    }
+
+    const result = await this.usersService.toggleTrainerVerificationStatus(trainerId);
+    return { 
+      message: `Status de verificación del entrenador cambiado exitosamente a ${result.isVerified ? 'verificado' : 'no verificado'}`,
+      isVerified: result.isVerified
+    };
+  }
+
   @Get('trainer/:trainerId')
   @HttpCode(HttpStatus.OK)
   async getTrainerById(@Param('trainerId') trainerId: string) {
     return this.usersService.getTrainerById(trainerId);
+  }
+
+  @Patch('trainer/:trainerId')
+  @UseGuards(JwtGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateTrainer(
+    @Param('trainerId') trainerId: string,
+    @Body() updateDto: UpdateTrainerDto,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Verificar que el usuario solo pueda editar su propia información
+    // o que sea un administrador
+    const userRole = req.user.role;
+    const requestingUserId = req.user.sub;
+    
+    if (userRole !== 'admin' && requestingUserId !== trainerId) {
+      throw new ForbiddenException('No tienes permisos para editar este entrenador');
+    }
+
+    return await this.usersService.updateTrainer(trainerId, updateDto);
   }
 
   @Get('trainer/profile/me')

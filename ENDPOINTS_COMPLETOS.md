@@ -36,6 +36,9 @@ Sistema completo de gestión de entrenamiento con usuarios, entrenadores, admini
 - **POST** `/users/assign-trainer` - Asignar entrenador a usuario
 - **DELETE** `/users/:userId/trainer` - Remover entrenador de usuario
 - **GET** `/users/by-trainer/:trainerId` - Usuarios de un entrenador específico
+- **PATCH** `/users/trainer/:trainerId` - Actualizar información del entrenador
+- **PATCH** `/users/trainer/:trainerId/toggle-status` - Cambiar status activo/inactivo del entrenador
+- **PATCH** `/users/trainer/:trainerId/toggle-verification` - Cambiar status de verificación del entrenador
 
 ### **Actualización de Usuarios**
 - **PATCH** `/users/:id` - Actualizar información de usuario
@@ -158,6 +161,42 @@ curl -X GET http://localhost:8000/users/trainers \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+**Respuesta incluye:**
+- Información completa del entrenador (sin contraseña)
+- Campo `assignedUsersCount` con el número de usuarios asignados
+
+**Ejemplo de respuesta:**
+```json
+[
+  {
+    "id": "9ad642c2-15c1-4359-8139-b1964303014f",
+    "email": "entrenador1@ejemplo.com",
+    "fullName": "Carlos Entrenador",
+    "role": "trainer",
+    "age": 30,
+    "phone": "+1234567890",
+    "isActive": true,
+    "isVerified": false,
+    "createdAt": "2024-01-10T10:00:00.000Z",
+    "updatedAt": "2024-01-10T10:00:00.000Z",
+    "assignedUsersCount": 5
+  },
+  {
+    "id": "otro-uuid-entrenador",
+    "email": "entrenador2@ejemplo.com",
+    "fullName": "María Entrenadora",
+    "role": "trainer",
+    "age": 28,
+    "phone": "+0987654321",
+    "isActive": false,
+    "isVerified": true,
+    "createdAt": "2024-01-12T10:00:00.000Z",
+    "updatedAt": "2024-01-12T10:00:00.000Z",
+    "assignedUsersCount": 0
+  }
+]
+```
+
 ### **Obtener Todos los Usuarios Normales**
 ```bash
 curl -X GET http://localhost:8000/users/normal \
@@ -210,6 +249,85 @@ curl -X GET http://localhost:8000/routines/all \
 curl -X GET http://localhost:8000/users/with-trainers \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
+
+### **Actualizar Entrenador**
+```bash
+curl -X PATCH http://localhost:8000/users/trainer/TRAINER_UUID \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fullName": "Nuevo Nombre del Entrenador",
+    "age": 32,
+    "phone": "+1234567890",
+    "documents": "Certificaciones actualizadas...",
+    "rfc": "CARE800101ABC",
+    "curp": "CARE800101HDFABC00",
+    "dateOfBirth": "1980-01-01"
+  }'
+```
+
+**Campos actualizables:**
+- `fullName` - Nombre completo
+- `age` - Edad (18-100 años)
+- `phone` - Número de teléfono
+- `documents` - Documentos/certificaciones
+- `rfc` - RFC del entrenador (13 caracteres, formato: AAAA000000AAA)
+- `curp` - CURP del entrenador (18 caracteres, formato: AAAA000000HAAAAA00)
+- `dateOfBirth` - Fecha de nacimiento (formato: YYYY-MM-DD)
+
+**Respuesta:**
+```json
+{
+  "id": "eaee096b-8ee4-43c0-b3a4-f5ec73d0d542",
+  "email": "entrenador@ejemplo.com",
+  "fullName": "Nuevo Nombre del Entrenador",
+  "role": "trainer",
+  "age": 32,
+  "phone": "+1234567890",
+  "documents": "Certificaciones actualizadas...",
+  "rfc": "CARE800101ABC",
+  "curp": "CARE800101HDFABC00",
+  "dateOfBirth": "1980-01-01",
+  "isActive": true,
+  "isVerified": false,
+  "createdAt": "2024-01-10T10:00:00.000Z",
+  "updatedAt": "2024-01-15T16:00:00.000Z"
+}
+```
+
+**Nota:** Solo el propio entrenador o administradores pueden actualizar la información.
+
+### **Cambiar Status de Entrenador**
+```bash
+curl -X PATCH http://localhost:8000/users/trainer/TRAINER_UUID/toggle-status \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+{
+  "message": "Status del entrenador cambiado exitosamente a inactivo",
+  "isActive": false
+}
+```
+
+**Nota:** Solo los administradores pueden cambiar el status de los entrenadores.
+
+### **Cambiar Status de Verificación de Entrenador**
+```bash
+curl -X PATCH http://localhost:8000/users/trainer/TRAINER_UUID/toggle-verification \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+{
+  "message": "Status de verificación del entrenador cambiado exitosamente a verificado",
+  "isVerified": true
+}
+```
+
+**Nota:** Solo los administradores pueden cambiar el status de verificación de los entrenadores.
 
 ---
 

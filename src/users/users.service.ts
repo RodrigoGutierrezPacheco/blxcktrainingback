@@ -7,6 +7,7 @@ import { Trainer } from './entities/trainer.entity';
 import { UserTrainer } from './entities/user-trainer.entity';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
@@ -235,16 +236,30 @@ export class UsersService {
 
   async getTrainerById(trainerId: string): Promise<Partial<Trainer>> {
     const trainer = await this.trainerRepository.findOne({
-      where: { id: trainerId }
+      where: { id: trainerId },
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'role',
+        'age',
+        'phone',
+        'documents',
+        'rfc',
+        'curp',
+        'dateOfBirth',
+        'isActive',
+        'isVerified',
+        'createdAt',
+        'updatedAt'
+      ]
     });
 
     if (!trainer) {
       throw new NotFoundException('Entrenador no encontrado');
     }
 
-    // Retornar el entrenador sin la contraseña por seguridad
-    const { password, ...trainerInfo } = trainer;
-    return trainerInfo;
+    return trainer;
   }
 
   async getTrainerProfile(trainerId: string): Promise<Partial<Trainer>> {
@@ -319,7 +334,7 @@ export class UsersService {
   }
 
   async findAllTrainers(): Promise<Trainer[]> {
-    return this.trainerRepository.find({
+    const trainers = await this.trainerRepository.find({
       select: [
         'id',
         'email',
@@ -327,10 +342,27 @@ export class UsersService {
         'role',
         'age',
         'phone',
+        'isActive',
+        'isVerified',
         'createdAt',
         'updatedAt'
       ]
     });
+
+    // Para cada entrenador, obtener el conteo de usuarios asignados
+    const trainersWithUserCount = await Promise.all(
+      trainers.map(async (trainer) => {
+        const userCount = await this.userTrainerRepository.count({
+          where: { 
+            trainer: { id: trainer.id },
+            isActive: true 
+          }
+        });
+        return { ...trainer, assignedUsersCount: userCount };
+      })
+    );
+
+    return trainersWithUserCount;
   }
 
   async findAllNormalUsers(): Promise<User[]> {
@@ -469,5 +501,87 @@ export class UsersService {
     await this.userRepository.save(user);
 
     return { isActive: user.isActive };
+  }
+
+  async toggleTrainerStatus(trainerId: string): Promise<{ isActive: boolean }> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Cambiar el status: si es true pasa a false, si es false pasa a true
+    trainer.isActive = !trainer.isActive;
+    await this.trainerRepository.save(trainer);
+
+    return { isActive: trainer.isActive };
+  }
+
+  async toggleTrainerVerificationStatus(trainerId: string): Promise<{ isVerified: boolean }> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Cambiar el status de verificación: si es true pasa a false, si es false pasa a true
+    trainer.isVerified = !trainer.isVerified;
+    await this.trainerRepository.save(trainer);
+
+    return { isVerified: trainer.isVerified };
+  }
+
+  async updateTrainer(trainerId: string, updateDto: UpdateTrainerDto): Promise<Partial<Trainer>> {
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Preparar los datos de actualización
+    const updateData: Partial<Trainer> = {};
+
+    if (updateDto.fullName) {
+      updateData.fullName = updateDto.fullName;
+    }
+
+    if (updateDto.age !== undefined) {
+      updateData.age = updateDto.age;
+    }
+
+    if (updateDto.phone) {
+      updateData.phone = updateDto.phone;
+    }
+
+    if (updateDto.documents) {
+      updateData.documents = updateDto.documents;
+    }
+
+    if (updateDto.rfc !== undefined) {
+      updateData.rfc = updateDto.rfc;
+    }
+
+    if (updateDto.curp !== undefined) {
+      updateData.curp = updateDto.curp;
+    }
+
+    if (updateDto.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateDto.dateOfBirth);
+    }
+
+    // Aplicar las actualizaciones
+    Object.assign(trainer, updateData);
+    
+    const updatedTrainer = await this.trainerRepository.save(trainer);
+    
+    // Retornar el entrenador sin la contraseña
+    const { password, ...result } = updatedTrainer;
+    return result;
   }
 }
