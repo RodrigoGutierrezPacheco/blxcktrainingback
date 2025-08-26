@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { RoutinesModule } from './modules/routines/routines.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { MuscleGroupsModule } from './modules/muscle-groups/muscle-groups.module';
+import { ExercisesModule } from './modules/exercises/exercises.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { MuscleGroupsModule } from './modules/muscle-groups/muscle-groups.module
     UsersModule,
     RoutinesModule,
     PlansModule,
-    MuscleGroupsModule
+    MuscleGroupsModule,
+    ExercisesModule
   ],
   controllers: [AppController],
   providers: [AppService],

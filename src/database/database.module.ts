@@ -10,10 +10,11 @@ import { UserTrainer } from "src/users/entities/user-trainer.entity";
 import { Routine } from "src/modules/routines/entities/routine.entity";
 import { Week } from "src/modules/routines/entities/week.entity";
 import { Day } from "src/modules/routines/entities/day.entity";
-import { Exercise } from "src/modules/routines/entities/exercise.entity";
+import { Exercise as RoutineExercise } from "src/modules/routines/entities/exercise.entity";
 import { UserRoutine } from "src/modules/routines/entities/user-routine.entity";
 import { Plan } from "src/modules/plans/entities/plan.entity";
 import { MuscleGroup } from "src/modules/muscle-groups/entities/muscle-group.entity";
+import { Exercise } from "src/modules/exercises/entities/exercise.entity";
 
 @Module({
   imports: [
@@ -37,10 +38,11 @@ import { MuscleGroup } from "src/modules/muscle-groups/entities/muscle-group.ent
           Routine,
           Week,
           Day,
-          Exercise,
+          RoutineExercise,
           UserRoutine,
           Plan,
-          MuscleGroup
+          MuscleGroup,
+          Exercise
         ],
         synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
         logging: configService.get<boolean>("DB_LOGGING", false),

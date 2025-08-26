@@ -92,6 +92,33 @@ Sistema completo de gestión de entrenamiento con usuarios, entrenadores, admini
 
 ---
 
+## 🏋️ **GESTIÓN DE EJERCICIOS**
+
+### **CRUD de Ejercicios**
+- **POST** `/exercises` - Crear nuevo ejercicio
+- **GET** `/exercises` - Todos los ejercicios (activos e inactivos)
+- **GET** `/exercises/active` - Solo ejercicios activos
+- **GET** `/exercises/all` - Todos los ejercicios (activos e inactivos)
+- **GET** `/exercises/muscle-group/:muscleGroupId` - Ejercicios por grupo muscular
+- **GET** `/exercises/:id` - Ejercicio por ID
+- **PATCH** `/exercises/:id` - Actualizar ejercicio
+- **DELETE** `/exercises/:id` - Eliminar ejercicio (soft delete)
+- **PATCH** `/exercises/:id/activate` - Activar ejercicio
+- **PATCH** `/exercises/:id/toggle-status` - Cambiar status activo/inactivo
+
+### **CRUD de Grupos Musculares**
+- **POST** `/muscle-groups` - Crear nuevo grupo muscular
+- **GET** `/muscle-groups` - Todos los grupos musculares (activos e inactivos)
+- **GET** `/muscle-groups/active` - Solo grupos musculares activos
+- **GET** `/muscle-groups/all` - Todos los grupos musculares (activos e inactivos)
+- **GET** `/muscle-groups/:id` - Grupo muscular por ID
+- **PATCH** `/muscle-groups/:id` - Actualizar grupo muscular
+- **DELETE** `/muscle-groups/:id` - Eliminar grupo muscular (soft delete)
+- **PATCH** `/muscle-groups/:id/activate` - Activar grupo muscular
+- **PATCH** `/muscle-groups/:id/toggle-status` - Cambiar status activo/inactivo
+
+---
+
 ## 💰 **GESTIÓN DE PLANES**
 
 ### **CRUD de Planes**
@@ -136,6 +163,18 @@ Routine → Weeks → Days → Exercises
 MuscleGroup
 ├── title (string, 3-100 caracteres)
 ├── description (text, 10-1000 caracteres)
+├── isActive (boolean, default: true)
+└── createdAt, updatedAt
+```
+
+### **Ejercicios**
+```
+Exercise
+├── name (string, 3-100 caracteres)
+├── description (text, 10-1000 caracteres)
+├── image (json: {type, url}, opcional)
+├── muscleGroupId (uuid, obligatorio)
+├── muscleGroupName (string, 100 caracteres)
 ├── isActive (boolean, default: true)
 └── createdAt, updatedAt
 ```
@@ -384,6 +423,99 @@ curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO/activate \
 ### **Cambiar Status de Grupo Muscular**
 ```bash
 curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO/toggle-status \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+{
+  "isActive": false
+}
+```
+
+---
+
+## 🏋️ **EJEMPLOS DE USO - EJERCICIOS**
+
+### **Crear Ejercicio**
+```bash
+curl -X POST http://localhost:8000/exercises \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca",
+    "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.",
+    "image": {
+      "type": "jpg",
+      "url": "https://ejemplo.com/press-banca.jpg"
+    },
+    "muscleGroupId": "UUID_DEL_GRUPO_MUSCULAR"
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "id": "uuid-generado",
+  "name": "Press de Banca",
+  "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.",
+  "image": {
+    "type": "jpg",
+    "url": "https://ejemplo.com/press-banca.jpg"
+  },
+  "muscleGroupId": "UUID_DEL_GRUPO_MUSCULAR",
+  "muscleGroupName": "Pecho",
+  "isActive": true,
+  "createdAt": "2024-01-15T16:00:00.000Z",
+  "updatedAt": "2024-01-15T16:00:00.000Z"
+}
+```
+
+### **Obtener Todos los Ejercicios (Activos e Inactivos)**
+```bash
+curl -X GET http://localhost:8000/exercises \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta incluye:**
+- Todos los ejercicios (activos e inactivos)
+- Campo `isActive` para identificar el status de cada ejercicio
+- Campo `muscleGroupName` para consultas rápidas
+- Ordenados alfabéticamente por nombre
+
+### **Obtener Ejercicios por Grupo Muscular**
+```bash
+curl -X GET http://localhost:8000/exercises/muscle-group/UUID_DEL_GRUPO_MUSCULAR \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Actualizar Ejercicio**
+```bash
+curl -X PATCH http://localhost:8000/exercises/UUID_DEL_EJERCICIO \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca con Barra",
+    "description": "Descripción actualizada del press de banca...",
+    "muscleGroupId": "NUEVO_UUID_GRUPO_MUSCULAR"
+  }'
+```
+
+### **Eliminar Ejercicio (Soft Delete)**
+```bash
+curl -X DELETE http://localhost:8000/exercises/UUID_DEL_EJERCICIO \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Activar Ejercicio**
+```bash
+curl -X PATCH http://localhost:8000/exercises/UUID_DEL_EJERCICIO/activate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Cambiar Status de Ejercicio**
+```bash
+curl -X PATCH http://localhost:8000/exercises/UUID_DEL_EJERCICIO/toggle-status \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
