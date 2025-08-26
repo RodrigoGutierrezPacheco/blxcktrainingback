@@ -77,6 +77,21 @@ Sistema completo de gestión de entrenamiento con usuarios, entrenadores, admini
 
 ---
 
+## 💪 **GESTIÓN DE GRUPOS MUSCULARES**
+
+### **CRUD de Grupos Musculares**
+- **POST** `/muscle-groups` - Crear nuevo grupo muscular
+- **GET** `/muscle-groups` - Todos los grupos musculares (activos e inactivos)
+- **GET** `/muscle-groups/active` - Solo grupos musculares activos
+- **GET** `/muscle-groups/all` - Todos los grupos musculares (activos e inactivos)
+- **GET** `/muscle-groups/:id` - Grupo muscular por ID
+- **PATCH** `/muscle-groups/:id` - Actualizar grupo muscular
+- **DELETE** `/muscle-groups/:id` - Eliminar grupo muscular (soft delete)
+- **PATCH** `/muscle-groups/:id/activate` - Activar grupo muscular
+- **PATCH** `/muscle-groups/:id/toggle-status` - Cambiar status activo/inactivo
+
+---
+
 ## 💰 **GESTIÓN DE PLANES**
 
 ### **CRUD de Planes**
@@ -114,6 +129,15 @@ Routine → Weeks → Days → Exercises
 ├── weekNumber, name, comments
 ├── dayNumber, name, comments
 └── name, sets, repetitions, restBetweenSets, restBetweenExercises, comments, order
+```
+
+### **Grupos Musculares**
+```
+MuscleGroup
+├── title (string, 3-100 caracteres)
+├── description (text, 10-1000 caracteres)
+├── isActive (boolean, default: true)
+└── createdAt, updatedAt
 ```
 
 ### **Planes**
@@ -248,6 +272,126 @@ curl -X GET http://localhost:8000/routines/all \
 ```bash
 curl -X GET http://localhost:8000/users/with-trainers \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Crear Grupo Muscular**
+```bash
+curl -X POST http://localhost:8000/muscle-groups \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Pecho",
+    "description": "Grupo muscular del pecho que incluye pectoral mayor, pectoral menor y serrato anterior. Fundamental para ejercicios de empuje y desarrollo de la parte superior del cuerpo."
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "id": "uuid-generado",
+  "title": "Pecho",
+  "description": "Grupo muscular del pecho que incluye pectoral mayor, pectoral menor y serrato anterior. Fundamental para ejercicios de empuje y desarrollo de la parte superior del cuerpo.",
+  "isActive": true,
+  "createdAt": "2024-01-15T16:00:00.000Z",
+  "updatedAt": "2024-01-15T16:00:00.000Z"
+}
+```
+
+### **Obtener Todos los Grupos Musculares (Activos e Inactivos)**
+```bash
+curl -X GET http://localhost:8000/muscle-groups \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta incluye:**
+- Todos los grupos musculares (activos e inactivos)
+- Campo `isActive` para identificar el status de cada grupo
+- Ordenados alfabéticamente por título
+
+**Ejemplo de respuesta:**
+```json
+[
+  {
+    "id": "uuid-1",
+    "title": "Espalda",
+    "description": "Grupo muscular de la espalda...",
+    "isActive": true,
+    "createdAt": "2024-01-15T16:00:00.000Z",
+    "updatedAt": "2024-01-15T16:00:00.000Z"
+  },
+  {
+    "id": "uuid-2",
+    "title": "Pecho",
+    "description": "Grupo muscular del pecho...",
+    "isActive": false,
+    "createdAt": "2024-01-15T16:00:00.000Z",
+    "updatedAt": "2024-01-15T16:30:00.000Z"
+  }
+]
+```
+
+### **Obtener Solo Grupos Musculares Activos**
+```bash
+curl -X GET http://localhost:8000/muscle-groups/active \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+[
+  {
+    "id": "uuid-1",
+    "title": "Pecho",
+    "description": "Grupo muscular del pecho...",
+    "isActive": true,
+    "createdAt": "2024-01-15T16:00:00.000Z",
+    "updatedAt": "2024-01-15T16:00:00.000Z"
+  },
+  {
+    "id": "uuid-2",
+    "title": "Espalda",
+    "description": "Grupo muscular de la espalda...",
+    "isActive": true,
+    "createdAt": "2024-01-15T16:00:00.000Z",
+    "updatedAt": "2024-01-15T16:00:00.000Z"
+  }
+]
+```
+
+### **Actualizar Grupo Muscular**
+```bash
+curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Pecho Superior",
+    "description": "Descripción actualizada del grupo muscular del pecho..."
+  }'
+```
+
+### **Eliminar Grupo Muscular (Soft Delete)**
+```bash
+curl -X DELETE http://localhost:8000/muscle-groups/UUID_DEL_GRUPO \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Activar Grupo Muscular**
+```bash
+curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO/activate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### **Cambiar Status de Grupo Muscular**
+```bash
+curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO/toggle-status \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+{
+  "isActive": false
+}
 ```
 
 ### **Actualizar Entrenador**
