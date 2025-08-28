@@ -8,6 +8,7 @@ import { VerifyDocumentDto } from './dto/verify-document.dto';
 import { ReplaceDocumentDto } from './dto/replace-document.dto';
 import { FirebaseStorageService } from 'src/common/firebase';
 import { v4 as uuidv4 } from 'uuid';
+import { Not, IsNull } from 'typeorm';
 
 @Injectable()
 export class TrainerVerificationService {
@@ -209,6 +210,24 @@ export class TrainerVerificationService {
       where: { isVerified: false },
       relations: ['trainer'],
       order: { createdAt: 'ASC' }
+    });
+  }
+
+  // Obtener documentos verificados
+  async getVerifiedDocuments(): Promise<TrainerVerificationDocument[]> {
+    return await this.documentRepository.find({
+      where: { isVerified: true },
+      relations: ['trainer'],
+      order: { verifiedAt: 'DESC' }
+    });
+  }
+
+  // Obtener documentos rechazados
+  async getRejectedDocuments(): Promise<TrainerVerificationDocument[]> {
+    return await this.documentRepository.find({
+      where: { isVerified: false, verificationNotes: Not(IsNull()) },
+      relations: ['trainer'],
+      order: { updatedAt: 'DESC' }
     });
   }
 

@@ -12,6 +12,7 @@ import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { Admin } from './entities/admin.entity';
+import { TrainerVerificationDocument } from '../modules/trainers/entities/trainer-verification-document.entity';
 
 @Injectable()
 export class UsersService {
@@ -33,6 +34,9 @@ export class UsersService {
 
     @InjectRepository(Admin)
     private adminRepository: Repository<Admin>,
+
+    @InjectRepository(TrainerVerificationDocument)
+    private trainerVerificationDocumentRepository: Repository<TrainerVerificationDocument>,
   ) {}
 
   async createNormalUser(createDto: CreateNormalUserDto): Promise<NormalUser> {
@@ -349,8 +353,8 @@ export class UsersService {
       ]
     });
 
-    // Para cada entrenador, obtener el conteo de usuarios asignados
-    const trainersWithUserCount = await Promise.all(
+    // Para cada entrenador, obtener el conteo de usuarios asignados y documentos de verificación
+    const trainersWithCounts = await Promise.all(
       trainers.map(async (trainer) => {
         const userCount = await this.userTrainerRepository.count({
           where: { 
@@ -358,11 +362,22 @@ export class UsersService {
             isActive: true 
           }
         });
-        return { ...trainer, assignedUsersCount: userCount };
+
+        const documentCount = await this.trainerVerificationDocumentRepository.count({
+          where: { 
+            trainerId: trainer.id 
+          }
+        });
+
+        return { 
+          ...trainer, 
+          assignedUsersCount: userCount,
+          verificationDocumentsCount: documentCount
+        };
       })
     );
 
-    return trainersWithUserCount;
+    return trainersWithCounts;
   }
 
   async findAllNormalUsers(): Promise<User[]> {

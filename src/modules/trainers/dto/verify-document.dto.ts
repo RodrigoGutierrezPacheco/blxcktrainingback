@@ -1,14 +1,12 @@
-import { IsBoolean, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class VerifyDocumentDto {
-  @IsBoolean({ message: "El estado de verificación debe ser un booleano" })
+  @IsBoolean()
+  @IsNotEmpty()
   isVerified: boolean;
 
+  @IsString()
   @IsOptional()
-  @IsString({ message: "Las notas de verificación deben ser texto" })
+  @MaxLength(1000, { message: 'Los comentarios no pueden exceder 1000 caracteres' })
   verificationNotes?: string;
-
-  @IsOptional()
-  @IsUUID(4, { message: "El ID del admin debe ser un UUID válido" })
-  verifiedBy?: string;
 }

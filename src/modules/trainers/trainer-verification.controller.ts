@@ -14,6 +14,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
@@ -25,6 +26,7 @@ import { JwtGuard } from 'src/auth/guards/jwt/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { DocumentType } from './entities/trainer-verification-document.entity';
+import { TrainerVerificationDocument } from './entities/trainer-verification-document.entity';
 
 @Controller('trainer-verification')
 @UseGuards(JwtGuard, RolesGuard)
@@ -211,6 +213,57 @@ export class TrainerVerificationController {
     @Request() req: any,
   ) {
     return await this.verificationService.verifyDocument(documentId, verifyDto, req.user.sub);
+  }
+
+  // Verificar documento con comentarios detallados (solo admin)
+  @Put('verify/:documentId/detailed')
+  @Roles('admin')
+  async verifyDocumentDetailed(
+    @Param('documentId') documentId: string,
+    @Body() verifyDto: VerifyDocumentDto,
+    @Request() req: any,
+  ) {
+    const result = await this.verificationService.verifyDocument(documentId, verifyDto, req.user.sub);
+    
+    return {
+      message: verifyDto.isVerified ? 'Documento verificado exitosamente' : 'Documento rechazado',
+      document: result,
+      verificationDetails: {
+        verifiedBy: req.user.sub,
+        verifiedAt: result.verifiedAt,
+        status: verifyDto.isVerified ? 'APPROVED' : 'REJECTED',
+        notes: verifyDto.verificationNotes || 'Sin comentarios'
+      }
+    };
+  }
+
+  // Obtener documentos por estado de verificación
+  @Get('status/:status')
+  @Roles('admin')
+  async getDocumentsByStatus(
+    @Param('status') status: 'verified' | 'pending' | 'rejected',
+  ) {
+    let documents: TrainerVerificationDocument[];
+    
+    switch (status) {
+      case 'verified':
+        documents = await this.verificationService.getVerifiedDocuments();
+        break;
+      case 'pending':
+        documents = await this.verificationService.getAllPendingDocuments();
+        break;
+      case 'rejected':
+        documents = await this.verificationService.getRejectedDocuments();
+        break;
+      default:
+        throw new BadRequestException('Estado de verificación inválido');
+    }
+    
+    return {
+      status,
+      count: documents.length,
+      documents
+    };
   }
 
   // Obtener todos los documentos pendientes (solo admin)
