@@ -9,17 +9,21 @@ import { RoutinesModule } from './modules/routines/routines.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { MuscleGroupsModule } from './modules/muscle-groups/muscle-groups.module';
 import { ExercisesModule } from './modules/exercises/exercises.module';
+import { TrainersModule } from './modules/trainers/trainers.module';
+import { FirebaseModule } from './common/firebase';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     DatabaseModule,
+    FirebaseModule,
     AuthModule,
     UsersModule,
     RoutinesModule,
     PlansModule,
     MuscleGroupsModule,
-    ExercisesModule
+    ExercisesModule,
+    TrainersModule
   ],
   controllers: [AppController],
   providers: [AppService],
