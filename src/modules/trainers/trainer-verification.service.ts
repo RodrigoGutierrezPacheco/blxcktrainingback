@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TrainerVerificationDocument, DocumentType } from './entities/trainer-verification-document.entity';
+import { TrainerVerificationDocument, DocumentType, VerificationStatus } from './entities/trainer-verification-document.entity';
 import { Trainer } from 'src/users/entities/trainer.entity';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import { VerifyDocumentDto } from './dto/verify-document.dto';
@@ -113,7 +113,7 @@ export class TrainerVerificationService {
     existingDocument.filePath = firebasePath;
     existingDocument.mimeType = file.mimetype;
     existingDocument.fileSize = file.size;
-    existingDocument.isVerified = false; // Resetear verificación
+    existingDocument.verificationStatus = VerificationStatus.PENDIENTE; // Resetear verificación
     existingDocument.verificationNotes = undefined;
     existingDocument.verifiedBy = undefined;
     existingDocument.verifiedAt = undefined;
@@ -180,20 +180,20 @@ export class TrainerVerificationService {
     }
 
     // Actualizar estado de verificación
-    document.isVerified = verifyDto.isVerified;
+    document.verificationStatus = verifyDto.verificationStatus;
     document.verificationNotes = verifyDto.verificationNotes;
     document.verifiedBy = adminId;
     document.verifiedAt = new Date();
 
-    // Si el documento es verificado, verificar si todos los documentos del entrenador están verificados
-    if (verifyDto.isVerified) {
+    // Si el documento es aceptado, verificar si todos los documentos del entrenador están aceptados
+    if (verifyDto.verificationStatus === VerificationStatus.ACEPTADA) {
       const allDocuments = await this.documentRepository.find({
         where: { trainerId: document.trainerId }
       });
 
-      const allVerified = allDocuments.every(doc => doc.isVerified);
+      const allAccepted = allDocuments.every(doc => doc.verificationStatus === VerificationStatus.ACEPTADA);
       
-      if (allVerified) {
+      if (allAccepted) {
         // Actualizar estado de verificación del entrenador
         await this.trainerRepository.update(
           { id: document.trainerId },
@@ -207,7 +207,7 @@ export class TrainerVerificationService {
 
   async getAllPendingDocuments(): Promise<TrainerVerificationDocument[]> {
     return await this.documentRepository.find({
-      where: { isVerified: false },
+      where: { verificationStatus: VerificationStatus.PENDIENTE },
       relations: ['trainer'],
       order: { createdAt: 'ASC' }
     });
@@ -216,7 +216,7 @@ export class TrainerVerificationService {
   // Obtener documentos verificados
   async getVerifiedDocuments(): Promise<TrainerVerificationDocument[]> {
     return await this.documentRepository.find({
-      where: { isVerified: true },
+      where: { verificationStatus: VerificationStatus.ACEPTADA },
       relations: ['trainer'],
       order: { verifiedAt: 'DESC' }
     });
@@ -225,7 +225,7 @@ export class TrainerVerificationService {
   // Obtener documentos rechazados
   async getRejectedDocuments(): Promise<TrainerVerificationDocument[]> {
     return await this.documentRepository.find({
-      where: { isVerified: false, verificationNotes: Not(IsNull()) },
+      where: { verificationStatus: VerificationStatus.RECHAZADA, verificationNotes: Not(IsNull()) },
       relations: ['trainer'],
       order: { updatedAt: 'DESC' }
     });

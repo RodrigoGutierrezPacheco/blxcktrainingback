@@ -1,9 +1,10 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { VerificationStatus } from '../entities/trainer-verification-document.entity';
 
 export class VerifyDocumentDto {
-  @IsBoolean()
+  @IsEnum(VerificationStatus, { message: 'El estado de verificación debe ser: pendiente, rechazada o aceptada' })
   @IsNotEmpty()
-  isVerified: boolean;
+  verificationStatus: VerificationStatus;
 
   @IsString()
   @IsOptional()

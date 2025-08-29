@@ -6,6 +6,7 @@ import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { GetUserByEmailDto } from './dto/get-user-by-email.dto';
 import { AssignTrainerDto } from './dto/assign-trainer.dto';
 import { GetUsersByTrainerDto } from './dto/get-users-by-trainer.dto';
+import { VerifyTrainerDocumentDto } from './dto/verify-trainer-document.dto';
 import { JwtGuard } from '../auth/guards/jwt/jwt.guard';
 
 interface RequestWithUser extends Request {
@@ -304,5 +305,39 @@ export class UsersController {
   async removeTrainerFromUser(@Param('userId') userId: string) {
     await this.usersService.removeTrainerFromUser(userId);
     return { message: 'Entrenador removido del usuario exitosamente' };
+  }
+
+  @Get('trainer/:trainerId/documents')
+  @HttpCode(HttpStatus.OK)
+  async getTrainerDocuments(@Param('trainerId') trainerId: string) {
+    return this.usersService.getTrainerDocuments(trainerId);
+  }
+
+  @Get('trainer/document/:documentId')
+  @HttpCode(HttpStatus.OK)
+  async getTrainerDocumentById(@Param('documentId') documentId: string) {
+    return this.usersService.getTrainerDocumentById(documentId);
+  }
+
+  @Patch('trainer/document/:documentId/verify')
+  @UseGuards(JwtGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyTrainerDocument(
+    @Param('documentId') documentId: string,
+    @Body() verifyDto: VerifyTrainerDocumentDto,
+    @Request() req: RequestWithUser
+  ) {
+    // Verificar que req.user existe
+    if (!req.user) {
+      throw new UnauthorizedException('Usuario no autenticado');
+    }
+
+    // Solo los administradores pueden verificar documentos
+    const userRole = req.user.role;
+    if (userRole !== 'admin') {
+      throw new ForbiddenException('Solo los administradores pueden verificar documentos de entrenadores');
+    }
+
+    return await this.usersService.verifyTrainerDocument(documentId, verifyDto, req.user.sub);
   }
 }

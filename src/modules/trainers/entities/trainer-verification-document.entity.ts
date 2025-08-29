@@ -16,6 +16,12 @@ export enum DocumentType {
   RFC = "rfc"
 }
 
+export enum VerificationStatus {
+  PENDIENTE = "pendiente",
+  RECHAZADA = "rechazada",
+  ACEPTADA = "aceptada"
+}
+
 @Entity()
 export class TrainerVerificationDocument {
   @PrimaryGeneratedColumn("uuid")
@@ -43,8 +49,13 @@ export class TrainerVerificationDocument {
   @Column({ comment: "Tamaño del archivo en bytes" })
   fileSize: number;
 
-  @Column({ type: "boolean", default: false, comment: "Indica si el documento ha sido verificado por un admin" })
-  isVerified: boolean;
+  @Column({ 
+    type: "enum", 
+    enum: VerificationStatus, 
+    default: VerificationStatus.PENDIENTE,
+    comment: "Estado de verificación del documento: pendiente, rechazada o aceptada'"
+  })
+  verificationStatus: VerificationStatus;
 
   @Column({ type: "text", nullable: true, comment: "Comentarios del admin sobre la verificación" })
   verificationNotes?: string;

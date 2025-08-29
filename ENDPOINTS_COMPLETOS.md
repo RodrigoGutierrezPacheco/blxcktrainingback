@@ -40,6 +40,11 @@ Sistema completo de gestión de entrenamiento con usuarios, entrenadores, admini
 - **PATCH** `/users/trainer/:trainerId/toggle-status` - Cambiar status activo/inactivo del entrenador
 - **PATCH** `/users/trainer/:trainerId/toggle-verification` - Cambiar status de verificación del entrenador
 
+### **Documentos de Entrenadores**
+- **GET** `/users/trainer/:trainerId/documents` - Todos los documentos de verificación de un entrenador
+- **GET** `/users/trainer/document/:documentId` - Documento específico de verificación por ID
+- **PATCH** `/users/trainer/document/:documentId/verify` - Verificar documento de entrenador (solo admins)
+
 ### **Actualización de Usuarios**
 - **PATCH** `/users/:id` - Actualizar información de usuario
 

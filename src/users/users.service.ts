@@ -9,6 +9,7 @@ import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { AssignTrainerDto } from './dto/assign-trainer.dto';
+import { VerifyTrainerDocumentDto } from './dto/verify-trainer-document.dto';
 import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { Admin } from './entities/admin.entity';
@@ -598,5 +599,79 @@ export class UsersService {
     // Retornar el entrenador sin la contraseña
     const { password, ...result } = updatedTrainer;
     return result;
+  }
+
+  async getTrainerDocuments(trainerId: string): Promise<TrainerVerificationDocument[]> {
+    // Verificar que el entrenador existe
+    const trainer = await this.trainerRepository.findOne({
+      where: { id: trainerId }
+    });
+
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Obtener todos los documentos de verificación del entrenador
+    const documents = await this.trainerVerificationDocumentRepository.find({
+      where: { trainerId },
+      order: { createdAt: 'DESC' }
+    });
+
+    return documents;
+  }
+
+  async getTrainerDocumentById(documentId: string): Promise<TrainerVerificationDocument> {
+    // Obtener un documento específico por su ID
+    const document = await this.trainerVerificationDocumentRepository.findOne({
+      where: { id: documentId },
+      relations: ['trainer']
+    });
+
+    if (!document) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+
+    return document;
+  }
+
+  async verifyTrainerDocument(documentId: string, verifyDto: VerifyTrainerDocumentDto, adminId: string): Promise<TrainerVerificationDocument> {
+    // Obtener el documento
+    const document = await this.trainerVerificationDocumentRepository.findOne({
+      where: { id: documentId }
+    });
+
+    if (!document) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+
+    // Verificar que el admin existe
+    const admin = await this.adminRepository.findOne({
+      where: { id: adminId }
+    });
+
+    if (!admin) {
+      throw new NotFoundException('Administrador no encontrado');
+    }
+
+    // Actualizar el documento con la verificación
+    document.verificationStatus = verifyDto.verificationStatus;
+    document.verificationNotes = verifyDto.verificationNotes;
+    document.verifiedBy = adminId;
+    document.verifiedAt = new Date();
+
+    // Guardar los cambios
+    await this.trainerVerificationDocumentRepository.save(document);
+
+    // Retornar el documento actualizado con la relación del entrenador
+    const updatedDocument = await this.trainerVerificationDocumentRepository.findOne({
+      where: { id: documentId },
+      relations: ['trainer']
+    });
+
+    if (!updatedDocument) {
+      throw new NotFoundException('Error al actualizar el documento');
+    }
+
+    return updatedDocument;
   }
 }

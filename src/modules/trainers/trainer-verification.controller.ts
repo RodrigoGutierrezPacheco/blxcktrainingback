@@ -225,13 +225,19 @@ export class TrainerVerificationController {
   ) {
     const result = await this.verificationService.verifyDocument(documentId, verifyDto, req.user.sub);
     
+    const statusMessage = verifyDto.verificationStatus === 'aceptada' 
+      ? 'Documento verificado exitosamente' 
+      : verifyDto.verificationStatus === 'rechazada' 
+        ? 'Documento rechazado' 
+        : 'Documento marcado como pendiente';
+    
     return {
-      message: verifyDto.isVerified ? 'Documento verificado exitosamente' : 'Documento rechazado',
+      message: statusMessage,
       document: result,
       verificationDetails: {
         verifiedBy: req.user.sub,
         verifiedAt: result.verifiedAt,
-        status: verifyDto.isVerified ? 'APPROVED' : 'REJECTED',
+        status: verifyDto.verificationStatus.toUpperCase(),
         notes: verifyDto.verificationNotes || 'Sin comentarios'
       }
     };
