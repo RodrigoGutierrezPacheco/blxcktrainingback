@@ -2,8 +2,9 @@ import { IsEnum, IsOptional, IsString } from "class-validator";
 import { DocumentType } from "../entities/trainer-verification-document.entity";
 
 export class ReplaceDocumentDto {
+  @IsOptional()
   @IsEnum(DocumentType, { message: "El tipo de documento debe ser válido" })
-  documentType: DocumentType;
+  documentType?: DocumentType;
 
   @IsOptional()
   @IsString()
