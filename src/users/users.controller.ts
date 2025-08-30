@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, Request, ForbiddenException, UnauthorizedException, Get, Query, Delete } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -17,12 +18,54 @@ interface RequestWithUser extends Request {
   };
 }
 
+@ApiTags('👥 Gestión de Usuarios')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('normal/register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Registrar Usuario Normal',
+    description: 'Crea un nuevo usuario normal en el sistema. Este endpoint no requiere autenticación.'
+  })
+  @ApiBody({
+    type: CreateNormalUserDto,
+    description: 'Datos del usuario a registrar',
+    examples: {
+      usuario1: {
+        summary: 'Usuario Ejemplo',
+        value: {
+          email: 'usuario@ejemplo.com',
+          password: 'Contraseña123!',
+          fullName: 'Juan Pérez',
+          age: 25,
+          weight: 70,
+          height: 175
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario registrado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-generado' },
+        email: { type: 'string', example: 'usuario@ejemplo.com' },
+        fullName: { type: 'string', example: 'Juan Pérez' },
+        role: { type: 'string', example: 'user' },
+        age: { type: 'number', example: 25 },
+        weight: { type: 'number', example: 70 },
+        height: { type: 'number', example: 175 },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 409, description: 'El email ya está registrado' })
   async registerNormalUser(@Body() createDto: CreateNormalUserDto) {
     return this.usersService.createNormalUser(createDto);
   }
@@ -30,6 +73,39 @@ export class UsersController {
   @Get('by-email')
   @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Usuario por Email',
+    description: 'Obtiene la información de un usuario específico por su email. Solo el propio usuario o administradores pueden acceder.'
+  })
+  @ApiQuery({
+    name: 'email',
+    description: 'Email del usuario a consultar',
+    example: 'usuario@ejemplo.com',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-generado' },
+        email: { type: 'string', example: 'usuario@ejemplo.com' },
+        fullName: { type: 'string', example: 'Juan Pérez' },
+        role: { type: 'string', example: 'user' },
+        age: { type: 'number', example: 25 },
+        weight: { type: 'number', example: 70 },
+        height: { type: 'number', example: 175 },
+        trainerId: { type: 'string', example: 'uuid-entrenador', nullable: true },
+        hasRoutine: { type: 'boolean', example: true },
+        isActive: { type: 'boolean', example: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para consultar este usuario' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async getUserByEmail(
     @Query() query: GetUserByEmailDto,
     @Request() req: RequestWithUser
@@ -63,6 +139,51 @@ export class UsersController {
   @Patch(':id')
   @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Actualizar Usuario',
+    description: 'Actualiza la información de un usuario específico. Solo el propio usuario o administradores pueden modificar.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario a actualizar',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiBody({
+    type: UpdateUserDto,
+    description: 'Datos a actualizar del usuario',
+    examples: {
+      actualizacion1: {
+        summary: 'Actualización Básica',
+        value: {
+          fullName: 'Juan Pérez Actualizado',
+          age: 26,
+          weight: 72,
+          height: 176
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-usuario' },
+        email: { type: 'string', example: 'usuario@ejemplo.com' },
+        fullName: { type: 'string', example: 'Juan Pérez Actualizado' },
+        role: { type: 'string', example: 'user' },
+        age: { type: 'number', example: 26 },
+        weight: { type: 'number', example: 72 },
+        height: { type: 'number', example: 176 },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para editar este usuario' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async updateUser(
     @Param('id') userId: string,
     @Body() updateDto: UpdateUserDto,
@@ -95,32 +216,228 @@ export class UsersController {
 
   @Post('assign-trainer')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Asignar Entrenador a Usuario',
+    description: 'Asigna un entrenador específico a un usuario. Esto permite al usuario acceder a rutinas personalizadas.'
+  })
+  @ApiBody({
+    type: AssignTrainerDto,
+    description: 'Datos para asignar entrenador a usuario',
+    examples: {
+      asignacion1: {
+        summary: 'Asignación de Entrenador',
+        value: {
+          userId: 'uuid-del-usuario',
+          trainerId: 'uuid-del-entrenador'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entrenador asignado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Entrenador asignado exitosamente' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-del-usuario' },
+            trainerId: { type: 'string', example: 'uuid-del-entrenador' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Usuario o entrenador no encontrado' })
   async assignTrainerToUser(@Body() assignDto: AssignTrainerDto) {
     return this.usersService.assignTrainerToUser(assignDto);
   }
 
   @Get('by-trainer/:trainerId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Usuarios por Entrenador',
+    description: 'Obtiene la lista de todos los usuarios asignados a un entrenador específico.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-usuario' },
+          email: { type: 'string', example: 'usuario@ejemplo.com' },
+          fullName: { type: 'string', example: 'Juan Pérez' },
+          role: { type: 'string', example: 'user' },
+          age: { type: 'number', example: 25 },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador' },
+          hasRoutine: { type: 'boolean', example: true },
+          isActive: { type: 'boolean', example: true }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async getUsersByTrainer(@Param() params: GetUsersByTrainerDto) {
     return this.usersService.getUsersByTrainer(params.trainerId);
   }
 
   @Get('with-trainers')
+  @ApiOperation({
+    summary: 'Obtener Todos los Usuarios con Entrenadores',
+    description: 'Obtiene la lista completa de todos los usuarios junto con la información de sus entrenadores asignados.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios con entrenadores obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-usuario' },
+          email: { type: 'string', example: 'usuario@ejemplo.com' },
+          fullName: { type: 'string', example: 'Juan Pérez' },
+          role: { type: 'string', example: 'user' },
+          age: { type: 'number', example: 25 },
+          weight: { type: 'number', example: 70 },
+          height: { type: 'number', example: 175 },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador', nullable: true },
+          hasRoutine: { type: 'boolean', example: true },
+          isActive: { type: 'boolean', example: true },
+          trainer: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string', example: 'uuid-del-entrenador' },
+              fullName: { type: 'string', example: 'Carlos Entrenador' },
+              email: { type: 'string', example: 'entrenador@ejemplo.com' },
+              role: { type: 'string', example: 'trainer' },
+              age: { type: 'number', example: 30 },
+              phone: { type: 'string', example: '+1234567890' }
+            }
+          }
+        }
+      }
+    }
+  })
   async getUsersWithTrainers() {
     return this.usersService.getUsersWithTrainers();
   }
 
   @Get('admins')
+  @ApiOperation({
+    summary: 'Obtener Todos los Administradores',
+    description: 'Obtiene la lista completa de todos los usuarios con rol de administrador en el sistema.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de administradores obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-admin' },
+          email: { type: 'string', example: 'admin@ejemplo.com' },
+          fullName: { type: 'string', example: 'Admin Sistema' },
+          role: { type: 'string', example: 'admin' },
+          age: { type: 'number', example: 35 },
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+        }
+      }
+    }
+  })
   async getAllAdmins() {
     return this.usersService.findAllAdmins();
   }
 
   @Get('trainers')
+  @ApiOperation({
+    summary: 'Obtener Todos los Entrenadores',
+    description: 'Obtiene la lista completa de todos los usuarios con rol de entrenador, incluyendo el conteo de usuarios asignados.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de entrenadores obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-entrenador' },
+          email: { type: 'string', example: 'entrenador@ejemplo.com' },
+          fullName: { type: 'string', example: 'Carlos Entrenador' },
+          role: { type: 'string', example: 'trainer' },
+          age: { type: 'number', example: 30 },
+          phone: { type: 'string', example: '+1234567890' },
+          isActive: { type: 'boolean', example: true },
+          isVerified: { type: 'boolean', example: false },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          assignedUsersCount: { type: 'number', example: 5 }
+        }
+      }
+    }
+  })
   async getAllTrainers() {
     return this.usersService.findAllTrainers();
   }
 
   @Get('normal')
+  @ApiOperation({
+    summary: 'Obtener Todos los Usuarios Normales',
+    description: 'Obtiene la lista completa de todos los usuarios con rol de usuario normal, incluyendo información de sus entrenadores asignados.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios normales obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-usuario' },
+          email: { type: 'string', example: 'usuario@ejemplo.com' },
+          fullName: { type: 'string', example: 'Juan Pérez' },
+          role: { type: 'string', example: 'user' },
+          age: { type: 'number', example: 25 },
+          weight: { type: 'number', example: 70 },
+          height: { type: 'number', example: 175 },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador', nullable: true },
+          hasRoutine: { type: 'boolean', example: true },
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          trainer: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              id: { type: 'string', example: 'uuid-del-entrenador' },
+              fullName: { type: 'string', example: 'Carlos Entrenador' },
+              email: { type: 'string', example: 'entrenador@ejemplo.com' },
+              role: { type: 'string', example: 'trainer' },
+              age: { type: 'number', example: 30 },
+              phone: { type: 'string', example: '+1234567890' }
+            }
+          }
+        }
+      }
+    }
+  })
   async getAllNormalUsers() {
     return this.usersService.findAllNormalUsers();
   }
@@ -136,12 +453,67 @@ export class UsersController {
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Obtener Usuario por ID',
+    description: 'Obtiene la información completa de un usuario específico por su ID único.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID único del usuario',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario encontrado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-usuario' },
+        email: { type: 'string', example: 'usuario@ejemplo.com' },
+        fullName: { type: 'string', example: 'Juan Pérez' },
+        role: { type: 'string', example: 'user' },
+        age: { type: 'number', example: 25 },
+        weight: { type: 'number', example: 70 },
+        height: { type: 'number', example: 175 },
+        trainerId: { type: 'string', example: 'uuid-del-entrenador', nullable: true },
+        hasRoutine: { type: 'boolean', example: true },
+        isActive: { type: 'boolean', example: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async getUserById(@Param('id') id: string) {
     return this.usersService.findUserById(id);
   }
 
   @Delete(':id')
   @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Eliminar Usuario',
+    description: 'Elimina permanentemente un usuario del sistema. Solo los administradores pueden realizar esta acción.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario a eliminar',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Usuario eliminado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Usuario eliminado exitosamente' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo los administradores pueden eliminar usuarios' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async deleteUser(
     @Param('id') userId: string,
     @Request() req: RequestWithUser
@@ -184,6 +556,30 @@ export class UsersController {
 
   @Patch(':id/toggle-status')
   @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Cambiar Status de Usuario',
+    description: 'Cambia el estado activo/inactivo de un usuario. Solo los administradores pueden realizar esta acción.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del usuario',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status del usuario cambiado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Status del usuario cambiado exitosamente a inactivo' },
+        isActive: { type: 'boolean', example: false }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo los administradores pueden cambiar el status de usuarios' })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async toggleUserStatus(
     @Param('id') userId: string,
     @Request() req: RequestWithUser
@@ -208,6 +604,30 @@ export class UsersController {
 
   @Patch('trainer/:trainerId/toggle-status')
   @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Cambiar Status de Entrenador',
+    description: 'Cambia el estado activo/inactivo de un entrenador. Solo los administradores pueden realizar esta acción.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status del entrenador cambiado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Status del entrenador cambiado exitosamente a inactivo' },
+        isActive: { type: 'boolean', example: false }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo los administradores pueden cambiar el status de entrenadores' })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async toggleTrainerStatus(
     @Param('trainerId') trainerId: string,
     @Request() req: RequestWithUser
@@ -232,6 +652,30 @@ export class UsersController {
 
   @Patch('trainer/:trainerId/toggle-verification')
   @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Cambiar Status de Verificación de Entrenador',
+    description: 'Cambia el estado de verificación de un entrenador. Solo los administradores pueden realizar esta acción.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status de verificación del entrenador cambiado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Status de verificación del entrenador cambiado exitosamente a verificado' },
+        isVerified: { type: 'boolean', example: true }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo los administradores pueden cambiar el status de verificación de entrenadores' })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async toggleTrainerVerification(
     @Param('trainerId') trainerId: string,
     @Request() req: RequestWithUser
@@ -256,6 +700,40 @@ export class UsersController {
 
   @Get('trainer/:trainerId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Entrenador por ID',
+    description: 'Obtiene la información completa de un entrenador específico por su ID único.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID único del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entrenador encontrado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-entrenador' },
+        email: { type: 'string', example: 'entrenador@ejemplo.com' },
+        fullName: { type: 'string', example: 'Carlos Entrenador' },
+        role: { type: 'string', example: 'trainer' },
+        age: { type: 'number', example: 30 },
+        phone: { type: 'string', example: '+1234567890' },
+        documents: { type: 'string', example: 'Certificación en entrenamiento personal' },
+        rfc: { type: 'string', example: 'CARE800101ABC' },
+        curp: { type: 'string', example: 'CARE800101HDFABC00' },
+        dateOfBirth: { type: 'string', example: '1980-01-01' },
+        isActive: { type: 'boolean', example: true },
+        isVerified: { type: 'boolean', example: false },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async getTrainerById(@Param('trainerId') trainerId: string) {
     return this.usersService.getTrainerById(trainerId);
   }
@@ -263,6 +741,59 @@ export class UsersController {
   @Patch('trainer/:trainerId')
   @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Actualizar Entrenador',
+    description: 'Actualiza la información de un entrenador específico. Solo el propio entrenador o administradores pueden modificar.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador a actualizar',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiBody({
+    type: UpdateTrainerDto,
+    description: 'Datos a actualizar del entrenador',
+    examples: {
+      actualizacion1: {
+        summary: 'Actualización de Entrenador',
+        value: {
+          fullName: 'Carlos Entrenador Actualizado',
+          age: 32,
+          phone: '+1234567890',
+          documents: 'Certificaciones actualizadas...',
+          rfc: 'CARE800101ABC',
+          curp: 'CARE800101HDFABC00',
+          dateOfBirth: '1980-01-01'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entrenador actualizado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-entrenador' },
+        email: { type: 'string', example: 'entrenador@ejemplo.com' },
+        fullName: { type: 'string', example: 'Carlos Entrenador Actualizado' },
+        role: { type: 'string', example: 'trainer' },
+        age: { type: 'number', example: 32 },
+        phone: { type: 'string', example: '+1234567890' },
+        documents: { type: 'string', example: 'Certificaciones actualizadas...' },
+        rfc: { type: 'string', example: 'CARE800101ABC' },
+        curp: { type: 'string', example: 'CARE800101HDFABC00' },
+        dateOfBirth: { type: 'string', example: '1980-01-01' },
+        isActive: { type: 'boolean', example: true },
+        isVerified: { type: 'boolean', example: false },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'No tienes permisos para editar este entrenador' })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async updateTrainer(
     @Param('trainerId') trainerId: string,
     @Body() updateDto: UpdateTrainerDto,
@@ -288,6 +819,35 @@ export class UsersController {
   @Get('trainer/profile/me')
   @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Mi Perfil de Entrenador',
+    description: 'Obtiene el perfil del entrenador autenticado usando el token JWT.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Perfil del entrenador obtenido exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-entrenador' },
+        email: { type: 'string', example: 'entrenador@ejemplo.com' },
+        fullName: { type: 'string', example: 'Carlos Entrenador' },
+        role: { type: 'string', example: 'trainer' },
+        age: { type: 'number', example: 30 },
+        phone: { type: 'string', example: '+1234567890' },
+        documents: { type: 'string', example: 'Certificación en entrenamiento personal' },
+        rfc: { type: 'string', example: 'CARE800101ABC' },
+        curp: { type: 'string', example: 'CARE800101HDFABC00' },
+        dateOfBirth: { type: 'string', example: '1980-01-01' },
+        isActive: { type: 'boolean', example: true },
+        isVerified: { type: 'boolean', example: false },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 404, description: 'Perfil de entrenador no encontrado' })
   async getMyTrainerProfile(@Request() req: RequestWithUser) {
     // El ID del entrenador viene del token JWT
     const trainerId = req.user.sub;
@@ -296,12 +856,63 @@ export class UsersController {
 
   @Get(':userId/trainer')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Entrenador de un Usuario',
+    description: 'Obtiene la información del entrenador asignado a un usuario específico.'
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID del usuario',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entrenador del usuario obtenido exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-entrenador' },
+        fullName: { type: 'string', example: 'Carlos Entrenador' },
+        email: { type: 'string', example: 'entrenador@ejemplo.com' },
+        role: { type: 'string', example: 'trainer' },
+        age: { type: 'number', example: 30 },
+        phone: { type: 'string', example: '+1234567890' },
+        isActive: { type: 'boolean', example: true },
+        isVerified: { type: 'boolean', example: false },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado o sin entrenador asignado' })
   async getTrainerByUser(@Param('userId') userId: string) {
     return this.usersService.getTrainerByUser(userId);
   }
 
   @Delete(':userId/trainer')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Remover Entrenador de Usuario',
+    description: 'Elimina la asignación de un entrenador a un usuario específico.'
+  })
+  @ApiParam({
+    name: 'userId',
+    description: 'ID del usuario',
+    example: 'uuid-del-usuario',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Entrenador removido del usuario exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Entrenador removido del usuario exitosamente' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   async removeTrainerFromUser(@Param('userId') userId: string) {
     await this.usersService.removeTrainerFromUser(userId);
     return { message: 'Entrenador removido del usuario exitosamente' };
@@ -309,12 +920,73 @@ export class UsersController {
 
   @Get('trainer/:trainerId/documents')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Documentos de Entrenador',
+    description: 'Obtiene todos los documentos de verificación de un entrenador específico.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Documentos del entrenador obtenidos exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-documento' },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador' },
+          documentType: { type: 'string', example: 'identification' },
+          fileName: { type: 'string', example: 'identificacion.jpg' },
+          fileUrl: { type: 'string', example: 'https://storage.com/documento.jpg' },
+          isVerified: { type: 'boolean', example: false },
+          verifiedBy: { type: 'string', example: 'uuid-del-admin', nullable: true },
+          verifiedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z', nullable: true },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async getTrainerDocuments(@Param('trainerId') trainerId: string) {
     return this.usersService.getTrainerDocuments(trainerId);
   }
 
   @Get('trainer/document/:documentId')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Documento de Entrenador por ID',
+    description: 'Obtiene un documento específico de verificación de entrenador por su ID único.'
+  })
+  @ApiParam({
+    name: 'documentId',
+    description: 'ID del documento',
+    example: 'uuid-del-documento',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Documento del entrenador obtenido exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-documento' },
+        trainerId: { type: 'string', example: 'uuid-del-entrenador' },
+        documentType: { type: 'string', example: 'identification' },
+        fileName: { type: 'string', example: 'identificacion.jpg' },
+        fileUrl: { type: 'string', example: 'https://storage.com/documento.jpg' },
+        isVerified: { type: 'boolean', example: false },
+        verifiedBy: { type: 'string', example: 'uuid-del-admin', nullable: true },
+        verifiedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z', nullable: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Documento no encontrado' })
   async getTrainerDocumentById(@Param('documentId') documentId: string) {
     return this.usersService.getTrainerDocumentById(documentId);
   }
@@ -322,6 +994,51 @@ export class UsersController {
   @Patch('trainer/document/:documentId/verify')
   @UseGuards(JwtGuard)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verificar Documento de Entrenador',
+    description: 'Marca un documento de entrenador como verificado. Solo los administradores pueden realizar esta acción.'
+  })
+  @ApiParam({
+    name: 'documentId',
+    description: 'ID del documento a verificar',
+    example: 'uuid-del-documento',
+    required: true
+  })
+  @ApiBody({
+    type: VerifyTrainerDocumentDto,
+    description: 'Datos de verificación del documento',
+    examples: {
+      verificacion1: {
+        summary: 'Verificación de Documento',
+        value: {
+          isVerified: true,
+          verificationNotes: 'Documento válido y legible'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Documento verificado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-documento' },
+        trainerId: { type: 'string', example: 'uuid-del-entrenador' },
+        documentType: { type: 'string', example: 'identification' },
+        fileName: { type: 'string', example: 'identificacion.jpg' },
+        fileUrl: { type: 'string', example: 'https://storage.com/documento.jpg' },
+        isVerified: { type: 'boolean', example: true },
+        verifiedBy: { type: 'string', example: 'uuid-del-admin' },
+        verifiedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        verificationNotes: { type: 'string', example: 'Documento válido y legible' },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 401, description: 'Usuario no autenticado' })
+  @ApiResponse({ status: 403, description: 'Solo los administradores pueden verificar documentos de entrenadores' })
+  @ApiResponse({ status: 404, description: 'Documento no encontrado' })
   async verifyTrainerDocument(
     @Param('documentId') documentId: string,
     @Body() verifyDto: VerifyTrainerDocumentDto,
