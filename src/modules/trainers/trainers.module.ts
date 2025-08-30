@@ -6,15 +6,17 @@ import { TrainerVerificationDocument } from './entities/trainer-verification-doc
 import { Trainer } from 'src/users/entities/trainer.entity';
 import { AuthModule } from 'src/auth/auth.module';
 import { FirebaseModule } from 'src/common/firebase';
+import { TrainerEducationModule } from './trainer-education.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([TrainerVerificationDocument, Trainer]),
     AuthModule,
     FirebaseModule,
+    TrainerEducationModule,
   ],
   controllers: [TrainerVerificationController],
   providers: [TrainerVerificationService],
-  exports: [TrainerVerificationService],
+  exports: [TrainerVerificationService, TrainerEducationModule],
 })
 export class TrainersModule {}

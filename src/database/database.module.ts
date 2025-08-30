@@ -16,6 +16,7 @@ import { Plan } from "src/modules/plans/entities/plan.entity";
 import { MuscleGroup } from "src/modules/muscle-groups/entities/muscle-group.entity";
 import { Exercise } from "src/modules/exercises/entities/exercise.entity";
 import { TrainerVerificationDocument } from "src/modules/trainers/entities/trainer-verification-document.entity";
+import { TrainerEducationDocument } from "src/modules/trainers/entities/trainer-education-document.entity";
 
 @Module({
   imports: [
@@ -44,7 +45,8 @@ import { TrainerVerificationDocument } from "src/modules/trainers/entities/train
           Plan,
           MuscleGroup,
           Exercise,
-          TrainerVerificationDocument
+          TrainerVerificationDocument,
+          TrainerEducationDocument
         ],
         synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
         logging: configService.get<boolean>("DB_LOGGING", false),
