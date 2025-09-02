@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { TrainerEducationDocument, EducationDocumentStatus } from './entities/trainer-education-document.entity';
+import { TrainerEducationDocument } from './entities/trainer-education-document.entity';
+import { VerificationStatus } from './entities/trainer-verification-document.entity';
 import { UploadEducationDocumentDto } from './dto/upload-education-document.dto';
 import { UpdateEducationDocumentDto } from './dto/update-education-document.dto';
+import { ReplaceEducationDocumentDto } from './dto/replace-education-document.dto';
 import { VerifyEducationDocumentDto } from './dto/verify-education-document.dto';
 import { Trainer } from 'src/users/entities/trainer.entity';
 import * as admin from 'firebase-admin';
@@ -68,7 +70,7 @@ export class TrainerEducationService {
         mimeType: file.mimetype,
         fileSize: file.size,
         trainerId: trainerId,
-        verificationStatus: EducationDocumentStatus.PENDIENTE,
+        verificationStatus: VerificationStatus.PENDIENTE,
         firebaseUrl: url,
       });
 
@@ -130,7 +132,7 @@ export class TrainerEducationService {
     }
 
     // Solo permitir actualización si el documento no está verificado
-    if (document.verificationStatus === EducationDocumentStatus.VERIFICADO) {
+    if (document.verificationStatus === VerificationStatus.ACEPTADA) {
       throw new BadRequestException('No se puede editar un documento ya verificado');
     }
 
@@ -145,13 +147,97 @@ export class TrainerEducationService {
 
     // Resetear estado de verificación a pendiente si se modifica
     if (updateDto.title || updateDto.description) {
-      document.verificationStatus = EducationDocumentStatus.PENDIENTE;
+      document.verificationStatus = VerificationStatus.PENDIENTE;
       document.verificationNotes = undefined;
       document.verifiedBy = undefined;
       document.verifiedAt = undefined;
     }
 
     return await this.educationDocumentRepository.save(document);
+  }
+
+  /**
+   * Reemplazar archivo de un documento de educación
+   */
+  async replaceDocumentFile(
+    documentId: string,
+    file: Express.Multer.File,
+    _replaceDto: ReplaceEducationDocumentDto // eslint-disable-line @typescript-eslint/no-unused-vars
+  ): Promise<TrainerEducationDocument> {
+    // Buscar documento existente
+    const existingDocument = await this.educationDocumentRepository.findOne({
+      where: { id: documentId }
+    });
+
+    if (!existingDocument) {
+      throw new NotFoundException('Documento no encontrado');
+    }
+
+    // Eliminar archivo anterior de Firebase Storage
+    if (existingDocument.filePath) {
+      try {
+        const bucket = admin.storage().bucket();
+        await bucket.file(existingDocument.filePath).delete();
+      } catch (error) {
+        console.warn(`No se pudo eliminar el archivo anterior: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      }
+    }
+
+    // Generar nuevo nombre de archivo
+    const fileExtension = file.originalname.split('.').pop();
+    const fileName = `${uuidv4()}_${existingDocument.title.replace(/\s+/g, '_').toLowerCase()}.${fileExtension}`;
+    const firebasePath = `Entrenadores/${existingDocument.trainerId}/educacion/${fileName}`;
+
+    // Subir nuevo archivo a Firebase Storage
+    const bucket = admin.storage().bucket();
+    const fileUpload = bucket.file(firebasePath);
+    
+    const stream = fileUpload.createWriteStream({
+      metadata: {
+        contentType: file.mimetype,
+        metadata: {
+          originalName: file.originalname,
+          uploadedBy: 'trainer-education-service'
+        }
+      }
+    });
+
+    return new Promise((resolve, reject) => {
+      stream.on('error', (error) => {
+        reject(new BadRequestException(`Error al subir el archivo: ${error.message}`));
+      });
+
+      stream.on('finish', () => {
+        void (async () => {
+          try {
+            // Hacer el archivo público
+            await fileUpload.makePublic();
+            
+            // Obtener URL pública
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${firebasePath}`;
+
+            // Actualizar registro en la base de datos
+            existingDocument.originalName = file.originalname;
+            existingDocument.fileName = fileName;
+            existingDocument.filePath = firebasePath;
+            existingDocument.mimeType = file.mimetype;
+            existingDocument.fileSize = file.size;
+            existingDocument.verificationStatus = VerificationStatus.PENDIENTE; // Resetear verificación
+            existingDocument.verificationNotes = undefined;
+            existingDocument.verifiedBy = undefined;
+            existingDocument.verifiedAt = undefined;
+            existingDocument.firebaseUrl = publicUrl;
+
+            const updatedDocument = await this.educationDocumentRepository.save(existingDocument);
+            resolve(updatedDocument);
+          } catch (error) {
+            reject(new BadRequestException(`Error al actualizar el documento: ${error instanceof Error ? error.message : 'Error desconocido'}`));
+          }
+        })();
+      });
+
+      stream.end(file.buffer);
+    });
   }
 
   /**
@@ -207,7 +293,7 @@ export class TrainerEducationService {
   /**
    * Obtener documentos por estado de verificación
    */
-  async getDocumentsByStatus(status: EducationDocumentStatus): Promise<TrainerEducationDocument[]> {
+  async getDocumentsByStatus(status: VerificationStatus): Promise<TrainerEducationDocument[]> {
     return await this.educationDocumentRepository.find({
       where: { verificationStatus: status },
       relations: ['trainer'],
@@ -219,21 +305,21 @@ export class TrainerEducationService {
    * Obtener todos los documentos pendientes
    */
   async getPendingDocuments(): Promise<TrainerEducationDocument[]> {
-    return await this.getDocumentsByStatus(EducationDocumentStatus.PENDIENTE);
+    return await this.getDocumentsByStatus(VerificationStatus.PENDIENTE);
   }
 
   /**
    * Obtener todos los documentos verificados
    */
   async getVerifiedDocuments(): Promise<TrainerEducationDocument[]> {
-    return await this.getDocumentsByStatus(EducationDocumentStatus.VERIFICADO);
+    return await this.getDocumentsByStatus(VerificationStatus.ACEPTADA);
   }
 
   /**
    * Obtener todos los documentos rechazados
    */
   async getRejectedDocuments(): Promise<TrainerEducationDocument[]> {
-    return await this.getDocumentsByStatus(EducationDocumentStatus.RECHAZADO);
+    return await this.getDocumentsByStatus(VerificationStatus.RECHAZADA);
   }
 
   /**
@@ -248,13 +334,13 @@ export class TrainerEducationService {
     const [total, pending, verified, rejected] = await Promise.all([
       this.educationDocumentRepository.count({ where: { trainerId } }),
       this.educationDocumentRepository.count({ 
-        where: { trainerId, verificationStatus: EducationDocumentStatus.PENDIENTE } 
+        where: { trainerId, verificationStatus: VerificationStatus.PENDIENTE } 
       }),
       this.educationDocumentRepository.count({ 
-        where: { trainerId, verificationStatus: EducationDocumentStatus.VERIFICADO } 
+        where: { trainerId, verificationStatus: VerificationStatus.ACEPTADA } 
       }),
       this.educationDocumentRepository.count({ 
-        where: { trainerId, verificationStatus: EducationDocumentStatus.RECHAZADO } 
+        where: { trainerId, verificationStatus: VerificationStatus.RECHAZADA } 
       }),
     ]);
 

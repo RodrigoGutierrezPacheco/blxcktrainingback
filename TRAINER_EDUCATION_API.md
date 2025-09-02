@@ -61,7 +61,7 @@ GET /trainer-education/documents/{trainerId}
     "id": "123e4567-e89b-12d3-a456-426614174000",
     "title": "Certificación en Entrenamiento Personal",
     "description": "Certificación obtenida en el Instituto Nacional de Deportes",
-    "verificationStatus": "verificado",
+    "verificationStatus": "aceptada",
     "createdAt": "2024-01-15T10:30:00.000Z"
   }
 ]
@@ -88,7 +88,7 @@ GET /trainer-education/document/{documentId}
   "filePath": "Entrenadores/123e4567-e89b-12d3-a456-426614174000/educacion/certificacion.pdf",
   "mimeType": "application/pdf",
   "fileSize": 2048576,
-  "verificationStatus": "verificado",
+  "verificationStatus": "aceptada",
   "verificationNotes": "Documento verificado correctamente",
   "verifiedBy": "admin-uuid",
   "verifiedAt": "2024-01-16T14:30:00.000Z",
@@ -136,7 +136,7 @@ DELETE /trainer-education/document/{documentId}
 
 ### 6. **Verificar Documento (Solo Admin)**
 ```http
-PUT /trainer-education/verify/{documentId}
+PATCH /trainer-education/verify/{documentId}
 ```
 
 **Descripción:** Permite a administradores cambiar el estado de verificación de un documento.
@@ -147,15 +147,15 @@ PUT /trainer-education/verify/{documentId}
 **Body:**
 ```json
 {
-  "verificationStatus": "verificado",
+  "verificationStatus": "aceptada",
   "verificationNotes": "Documento verificado correctamente. Certificación válida y vigente."
 }
 ```
 
 **Estados disponibles:**
 - `pendiente`: Documento en espera de verificación
-- `verificado`: Documento aprobado
-- `rechazado`: Documento rechazado
+- `aceptada`: Documento aprobado
+- `rechazada`: Documento rechazado
 
 ### 7. **Obtener Documentos por Estado (Solo Admin)**
 ```http
@@ -165,7 +165,7 @@ GET /trainer-education/documents/status/{status}
 **Descripción:** Filtra documentos según su estado de verificación.
 
 **Parámetros de ruta:**
-- `status`: Estado de verificación (pendiente, verificado, rechazado)
+- `status`: Estado de verificación (pendiente, aceptada, rechazada)
 
 ### 8. **Obtener Documentos Pendientes (Solo Admin)**
 ```http
@@ -251,7 +251,7 @@ GET /trainer-education/document/{documentId}/download?expirationMinutes=60
 - **Tamaño máximo de archivo:** 10MB
 - **Título:** 5-200 caracteres
 - **Descripción:** 10-1000 caracteres
-- **Estados de verificación:** pendiente, verificado, rechazado
+- **Estados de verificación:** pendiente, aceptada, rechazada
 
 ## 🚀 **Ejemplos de Uso**
 
@@ -266,11 +266,11 @@ curl -X POST http://localhost:8000/trainer-education/upload/123e4567-e89b-12d3-a
 
 ### **Verificar un Documento (Admin):**
 ```bash
-curl -X PUT http://localhost:8000/trainer-education/verify/123e4567-e89b-12d3-a456-426614174000 \
+curl -X PATCH http://localhost:8000/trainer-education/verify/123e4567-e89b-12d3-a456-426614174000 \
   -H "Authorization: Bearer ADMIN_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "verificationStatus": "verificado",
+    "verificationStatus": "aceptada",
     "verificationNotes": "Documento verificado correctamente. Certificación válida y vigente."
   }'
 ```

@@ -1,17 +1,17 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { EducationDocumentStatus } from '../entities/trainer-education-document.entity';
+import { VerificationStatus } from '../entities/trainer-verification-document.entity';
 
 export class VerifyEducationDocumentDto {
   @ApiProperty({
     description: 'Estado de verificación del documento',
-    enum: EducationDocumentStatus,
-    example: EducationDocumentStatus.VERIFICADO,
+    enum: VerificationStatus,
+    example: VerificationStatus.ACEPTADA,
     required: true
   })
-  @IsEnum(EducationDocumentStatus, { message: 'El estado de verificación debe ser: pendiente, verificado o rechazado' })
+  @IsEnum(VerificationStatus, { message: 'El estado de verificación debe ser: pendiente, rechazada o aceptada' })
   @IsNotEmpty()
-  verificationStatus: EducationDocumentStatus;
+  verificationStatus: VerificationStatus;
 
   @ApiProperty({
     description: 'Comentarios del administrador sobre la verificación',

@@ -9,12 +9,7 @@ import {
 } from "typeorm";
 import { ApiProperty } from "@nestjs/swagger";
 import { Trainer } from "src/users/entities/trainer.entity";
-
-export enum EducationDocumentStatus {
-  PENDIENTE = "pendiente",
-  VERIFICADO = "verificado",
-  RECHAZADO = "rechazado"
-}
+import { VerificationStatus } from "./trainer-verification-document.entity";
 
 @Entity()
 export class TrainerEducationDocument {
@@ -76,17 +71,17 @@ export class TrainerEducationDocument {
 
   @ApiProperty({
     description: 'Estado de verificación del documento',
-    enum: EducationDocumentStatus,
-    example: EducationDocumentStatus.PENDIENTE,
-    default: EducationDocumentStatus.PENDIENTE
+    enum: VerificationStatus,
+    example: VerificationStatus.PENDIENTE,
+    default: VerificationStatus.PENDIENTE
   })
   @Column({ 
     type: "enum", 
-    enum: EducationDocumentStatus, 
-    default: EducationDocumentStatus.PENDIENTE,
-    comment: "Estado de verificación del documento: pendiente, verificado o rechazado"
+    enum: VerificationStatus, 
+    default: VerificationStatus.PENDIENTE,
+    comment: "Estado de verificación del documento: pendiente, rechazada o aceptada"
   })
-  verificationStatus: EducationDocumentStatus;
+  verificationStatus: VerificationStatus;
 
   @ApiProperty({
     description: 'Comentarios del admin sobre la verificación',

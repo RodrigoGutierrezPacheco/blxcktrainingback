@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
@@ -16,6 +17,7 @@ import {
   FileTypeValidator,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -31,8 +33,10 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { TrainerEducationService } from './trainer-education.service';
 import { UploadEducationDocumentDto } from './dto/upload-education-document.dto';
 import { UpdateEducationDocumentDto } from './dto/update-education-document.dto';
+import { ReplaceEducationDocumentDto } from './dto/replace-education-document.dto';
 import { VerifyEducationDocumentDto } from './dto/verify-education-document.dto';
-import { TrainerEducationDocument, EducationDocumentStatus } from './entities/trainer-education-document.entity';
+import { TrainerEducationDocument } from './entities/trainer-education-document.entity';
+import { VerificationStatus } from './entities/trainer-verification-document.entity';
 import { JwtGuard } from 'src/auth/guards/jwt/jwt.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -215,6 +219,82 @@ export class TrainerEducationController {
   }
 
   /**
+   * Reemplazar archivo de un documento de educación
+   * Permite reemplazar el archivo físico de un documento existente
+   */
+  @Put('replace/:trainerId/:documentId')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Reemplazar archivo de documento de educación',
+    description: 'Reemplaza el archivo físico de un documento de educación existente. El estado de verificación se resetea a "pendiente".'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: '123e4567-e89b-12d3-a456-426614174000'
+  })
+  @ApiParam({
+    name: 'documentId',
+    description: 'ID del documento a reemplazar',
+    example: '123e4567-e89b-12d3-a456-426614174001'
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Nuevo archivo y datos del documento',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Nuevo archivo del documento (PDF, JPG, PNG, etc.)'
+        },
+        notes: {
+          type: 'string',
+          description: 'Notas sobre el reemplazo del documento',
+          example: 'Documento anterior expirado, se reemplaza con el vigente'
+        }
+      },
+      required: ['file']
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Documento reemplazado exitosamente',
+    type: TrainerEducationDocument
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Error en la validación del archivo o datos'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Documento o entrenador no encontrado'
+  })
+  async replaceDocumentFile(
+    @Param('trainerId') trainerId: string,
+    @Param('documentId') documentId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
+          new FileTypeValidator({ fileType: /(pdf|jpg|jpeg|png|doc|docx)$/ }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+    @Body() replaceDto: ReplaceEducationDocumentDto,
+    @Request() req: RequestWithUser,
+  ): Promise<TrainerEducationDocument> {
+    // Verificar que el entrenador solo puede reemplazar sus propios documentos
+    if (req.user.sub !== trainerId && req.user.role !== 'admin') {
+      throw new BadRequestException('No tienes permisos para reemplazar documentos de otro entrenador');
+    }
+
+    return await this.educationService.replaceDocumentFile(documentId, file, replaceDto);
+  }
+
+  /**
    * Eliminar un documento
    * Elimina completamente un documento de educación y su archivo asociado
    */
@@ -245,7 +325,7 @@ export class TrainerEducationController {
    * Verificar un documento (solo administradores)
    * Permite a los administradores cambiar el estado de verificación de un documento
    */
-  @Put('verify/:documentId')
+  @Patch('verify/:documentId')
   @Roles('admin')
   @ApiOperation({
     summary: 'Verificar documento de educación',
@@ -294,8 +374,8 @@ export class TrainerEducationController {
   @ApiParam({
     name: 'status',
     description: 'Estado de verificación',
-    enum: EducationDocumentStatus,
-    example: EducationDocumentStatus.PENDIENTE
+    enum: VerificationStatus,
+    example: VerificationStatus.PENDIENTE
   })
   @ApiResponse({
     status: 200,
@@ -306,7 +386,7 @@ export class TrainerEducationController {
     status: 403,
     description: 'Acceso denegado - Solo administradores'
   })
-  async getDocumentsByStatus(@Param('status') status: EducationDocumentStatus): Promise<TrainerEducationDocument[]> {
+  async getDocumentsByStatus(@Param('status') status: VerificationStatus): Promise<TrainerEducationDocument[]> {
     return await this.educationService.getDocumentsByStatus(status);
   }
 
