@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, Request, ForbiddenException, UnauthorizedException, Get, Query, Delete } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Patch, Param, UseGuards, Request, ForbiddenException, UnauthorizedException, Get, Query, Delete, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateNormalUserDto } from './dto/create-normal-user.dto';
@@ -993,29 +993,101 @@ export class UsersController {
   @Delete(':userId/trainer')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Remover Entrenador de Usuario',
-    description: 'Elimina la asignación de un entrenador a un usuario específico.'
+    summary: 'Desasignar Entrenador de Usuario',
+    description: 'Desasigna completamente el entrenador de un usuario específico. Esta acción desactiva la relación entrenador-usuario y limpia el campo trainerId del usuario. El usuario quedará sin entrenador asignado.'
   })
   @ApiParam({
     name: 'userId',
-    description: 'ID del usuario',
-    example: 'uuid-del-usuario',
+    description: 'ID del usuario al que se le desasignará el entrenador',
+    example: '123e4567-e89b-12d3-a456-426614174000',
     required: true
   })
   @ApiResponse({
     status: 200,
-    description: 'Entrenador removido del usuario exitosamente',
+    description: 'Entrenador desasignado del usuario exitosamente',
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Entrenador removido del usuario exitosamente' }
+        message: { 
+          type: 'string', 
+          example: 'Entrenador desasignado del usuario exitosamente',
+          description: 'Mensaje de confirmación de desasignación'
+        },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+            fullName: { type: 'string', example: 'Juan Pérez García' },
+            email: { type: 'string', example: 'juan.perez@example.com' },
+            trainerId: { type: 'string', example: null, nullable: true },
+            isActive: { type: 'boolean', example: true }
+          },
+          description: 'Información del usuario actualizada'
+        },
+        previousTrainer: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174001' },
+            fullName: { type: 'string', example: 'Carlos Entrenador' },
+            email: { type: 'string', example: 'carlos@entrenador.com' }
+          },
+          nullable: true,
+          description: 'Información del entrenador que fue desasignado'
+        }
       }
     }
   })
-  @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Usuario no encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Acceso denegado - Solo administradores pueden desasignar entrenadores' 
+  })
   async removeTrainerFromUser(@Param('userId') userId: string) {
+    // Obtener información del usuario antes de la desasignación
+    const user = await this.usersService.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Obtener información del entrenador actual si existe
+    let previousTrainer: any = null;
+    if (user.trainerId) {
+      previousTrainer = await this.usersService.findTrainerById(user.trainerId);
+    }
+
+    // Desasignar el entrenador
     await this.usersService.removeTrainerFromUser(userId);
-    return { message: 'Entrenador removido del usuario exitosamente' };
+
+    return {
+      message: 'Entrenador desasignado del usuario exitosamente',
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        trainerId: null,
+        isActive: user.isActive
+      },
+      previousTrainer: previousTrainer ? {
+        id: previousTrainer.id,
+        fullName: previousTrainer.fullName,
+        email: previousTrainer.email
+      } : null
+    };
   }
 
   @Get('trainer/:trainerId/documents')

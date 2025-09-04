@@ -15,6 +15,7 @@ import { RoutinesService } from './routines.service';
 import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
+import { ReassignRoutineDto } from './dto/reassign-routine.dto';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 import { Public } from '../../auth/decorators/public.decorator';
 
@@ -378,6 +379,122 @@ export class RoutinesController {
   @ApiResponse({ status: 404, description: 'Usuario o rutina no encontrado' })
   assignRoutineToUser(@Body() assignRoutineDto: AssignRoutineDto) {
     return this.routinesService.assignRoutineToUser(assignRoutineDto);
+  }
+
+  @Post('reassign')
+  @ApiOperation({
+    summary: 'Reasignar Rutina a Usuario',
+    description: 'Reasigna una nueva rutina a un usuario que ya tiene rutinas asignadas. Desactiva automáticamente todas las rutinas activas anteriores y asigna la nueva rutina.'
+  })
+  @ApiBody({
+    type: ReassignRoutineDto,
+    description: 'Datos para reasignar rutina a usuario',
+    examples: {
+      reasignacion1: {
+        summary: 'Reasignación de Rutina',
+        value: {
+          user_id: 'uuid-del-usuario',
+          routine_id: 'uuid-de-nueva-rutina',
+          startDate: '2024-01-15T00:00:00.000Z',
+          endDate: '2024-04-15T00:00:00.000Z',
+          notes: 'Rutina actualizada por cambio de objetivos del usuario'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutina reasignada al usuario exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          example: 'Rutina reasignada exitosamente',
+          description: 'Mensaje de confirmación de reasignación'
+        },
+        userRoutine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-generado' },
+            user_id: { type: 'string', example: 'uuid-del-usuario' },
+            routine_id: { type: 'string', example: 'uuid-de-nueva-rutina' },
+            startDate: { type: 'string', example: '2024-01-15T00:00:00.000Z' },
+            endDate: { type: 'string', example: '2024-04-15T00:00:00.000Z', nullable: true },
+            notes: { type: 'string', example: 'Rutina actualizada por cambio de objetivos', nullable: true },
+            isActive: { type: 'boolean', example: true },
+            createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+          },
+          description: 'Información de la nueva asignación de rutina'
+        },
+        previousRoutines: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-rutina-anterior' },
+              routine_id: { type: 'string', example: 'uuid-rutina-anterior' },
+              isActive: { type: 'boolean', example: false }
+            }
+          },
+          description: 'Lista de rutinas anteriores que fueron desactivadas'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Datos de entrada inválidos',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'array', items: { type: 'string' }, example: ['user_id debe ser un UUID válido'] },
+        error: { type: 'string', example: 'Bad Request' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Usuario o rutina no encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  async reassignRoutineToUser(@Body() reassignRoutineDto: ReassignRoutineDto) {
+    const result = await this.routinesService.reassignRoutineToUser(reassignRoutineDto);
+    
+    // Obtener las rutinas anteriores que fueron desactivadas
+    const previousRoutines = await this.routinesService.getUserRoutines(reassignRoutineDto.user_id);
+    const deactivatedRoutines = previousRoutines.filter(routine => !routine.isActive);
+    
+    return {
+      message: 'Rutina reasignada exitosamente',
+      userRoutine: {
+        id: result.id,
+        user_id: result.user_id,
+        routine_id: result.routine_id,
+        startDate: result.startDate,
+        endDate: result.endDate,
+        notes: result.notes,
+        isActive: result.isActive,
+        createdAt: result.createdAt
+      },
+      previousRoutines: deactivatedRoutines.map(routine => ({
+        id: routine.id,
+        routine_id: routine.routine_id,
+        isActive: routine.isActive
+      }))
+    };
   }
 
   @Get('user/:userId')

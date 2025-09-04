@@ -9,6 +9,7 @@ import { UserRoutine } from './entities/user-routine.entity';
 import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
+import { ReassignRoutineDto } from './dto/reassign-routine.dto';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 
@@ -326,6 +327,47 @@ export class RoutinesService {
     if (activeRoutines === 0) {
       await this.usersService.updateUserRoutineStatus(userId, false);
     }
+  }
+
+  async reassignRoutineToUser(reassignDto: ReassignRoutineDto): Promise<UserRoutine> {
+    // Verificar que el usuario existe
+    const user = await this.usersService.findUserById(reassignDto.user_id);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Verificar que la nueva rutina existe
+    await this.findOne(reassignDto.routine_id);
+
+    // Desactivar todas las rutinas activas del usuario
+    const activeRoutines = await this.userRoutineRepository.find({
+      where: {
+        user_id: reassignDto.user_id,
+        isActive: true,
+      },
+    });
+
+    for (const routine of activeRoutines) {
+      routine.isActive = false;
+      await this.userRoutineRepository.save(routine);
+    }
+
+    // Crear nueva asignación de rutina
+    const newUserRoutine = this.userRoutineRepository.create({
+      user_id: reassignDto.user_id,
+      routine_id: reassignDto.routine_id,
+      startDate: new Date(reassignDto.startDate),
+      endDate: reassignDto.endDate ? new Date(reassignDto.endDate) : null,
+      notes: reassignDto.notes,
+      isActive: true,
+    });
+
+    const savedUserRoutine = await this.userRoutineRepository.save(newUserRoutine);
+
+    // Actualizar el estado hasRoutine del usuario
+    await this.usersService.updateUserRoutineStatus(reassignDto.user_id, true);
+
+    return savedUserRoutine;
   }
 
   // Método para sincronizar el estado de hasRoutine para todos los usuarios
