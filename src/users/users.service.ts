@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { UserBase } from './entities/user-base.entity';
 import { NormalUser } from './entities/normal-user.entity';
 import { Trainer } from './entities/trainer.entity';
@@ -435,6 +435,18 @@ export class UsersService {
     return this.userRepository.find({
       where: { hasRoutine: true },
       select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
+    });
+  }
+
+  async getUsersWithoutTrainer(): Promise<User[]> {
+    return this.userRepository.find({
+      where: { 
+        role: 'user',
+        trainerId: IsNull(),
+        isActive: true 
+      },
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
+      order: { createdAt: 'DESC' }
     });
   }
 

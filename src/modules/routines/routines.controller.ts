@@ -256,8 +256,83 @@ export class RoutinesController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.routinesService.remove(id);
+  @ApiOperation({
+    summary: 'Eliminar Rutina',
+    description: 'Elimina permanentemente una rutina del sistema. Esta acción también eliminará todas las semanas, días y ejercicios asociados, así como las asignaciones de usuarios a esta rutina. Esta acción no se puede deshacer.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID único de la rutina a eliminar',
+    example: 'uuid-de-rutina',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutina eliminada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          example: 'Rutina eliminada exitosamente',
+          description: 'Mensaje de confirmación de eliminación'
+        },
+        deletedRoutine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-de-rutina' },
+            name: { type: 'string', example: 'Rutina de Fuerza' },
+            description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
+            comments: { type: 'string', example: 'Realizar 3 veces por semana' },
+            totalWeeks: { type: 'number', example: 4 },
+            isActive: { type: 'boolean', example: true },
+            trainer_id: { type: 'string', example: 'uuid-del-entrenador' },
+            createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+            updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+          },
+          description: 'Información de la rutina eliminada'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Rutina no encontrada',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Rutina no encontrada' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Acceso denegado - Solo el creador de la rutina o administradores pueden eliminarla' 
+  })
+  async remove(@Param('id') id: string) {
+    const deletedRoutine = await this.routinesService.findOne(id);
+    await this.routinesService.remove(id);
+    
+    return {
+      message: 'Rutina eliminada exitosamente',
+      deletedRoutine: {
+        id: deletedRoutine.id,
+        name: deletedRoutine.name,
+        description: deletedRoutine.description,
+        comments: deletedRoutine.comments,
+        totalWeeks: deletedRoutine.totalWeeks,
+        isActive: deletedRoutine.isActive,
+        trainer_id: deletedRoutine.trainer_id,
+        createdAt: deletedRoutine.createdAt,
+        updatedAt: deletedRoutine.updatedAt
+      }
+    };
   }
 
   // Endpoints para asignar rutinas a usuarios

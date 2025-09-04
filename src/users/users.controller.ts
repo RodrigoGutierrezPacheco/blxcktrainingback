@@ -452,6 +452,106 @@ export class UsersController {
     return this.usersService.findInactiveUsers();
   }
 
+  @Get('without-trainer')
+  @UseGuards(JwtGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Usuarios Sin Entrenador Asignado',
+    description: 'Obtiene la lista completa de todos los usuarios normales que no tienen un entrenador asignado. Útil para administradores que necesitan asignar entrenadores a usuarios.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios sin entrenador obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { 
+            type: 'string', 
+            format: 'uuid',
+            example: '123e4567-e89b-12d3-a456-426614174000',
+            description: 'ID único del usuario'
+          },
+          fullName: { 
+            type: 'string', 
+            example: 'Juan Pérez García',
+            description: 'Nombre completo del usuario'
+          },
+          email: { 
+            type: 'string', 
+            format: 'email',
+            example: 'juan.perez@example.com',
+            description: 'Correo electrónico del usuario'
+          },
+          role: { 
+            type: 'string', 
+            example: 'user',
+            description: 'Rol del usuario en el sistema'
+          },
+          age: { 
+            type: 'number', 
+            example: 28,
+            nullable: true,
+            description: 'Edad del usuario'
+          },
+          weight: { 
+            type: 'number', 
+            example: 75.5,
+            nullable: true,
+            description: 'Peso del usuario en kg'
+          },
+          height: { 
+            type: 'number', 
+            example: 175,
+            nullable: true,
+            description: 'Altura del usuario en cm'
+          },
+          trainerId: { 
+            type: 'string', 
+            format: 'uuid',
+            example: null,
+            nullable: true,
+            description: 'ID del entrenador asignado (null si no tiene entrenador)'
+          },
+          hasRoutine: { 
+            type: 'boolean', 
+            example: false,
+            description: 'Indica si el usuario tiene una rutina asignada'
+          },
+          isActive: { 
+            type: 'boolean', 
+            example: true,
+            description: 'Indica si el usuario está activo en el sistema'
+          },
+          createdAt: { 
+            type: 'string', 
+            format: 'date-time',
+            example: '2024-01-15T10:00:00.000Z',
+            description: 'Fecha de creación del usuario'
+          },
+          updatedAt: { 
+            type: 'string', 
+            format: 'date-time',
+            example: '2024-01-15T10:00:00.000Z',
+            description: 'Fecha de última actualización del usuario'
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Acceso denegado - Solo administradores pueden acceder' 
+  })
+  async getUsersWithoutTrainer() {
+    return this.usersService.getUsersWithoutTrainer();
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Obtener Usuario por ID',
