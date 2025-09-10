@@ -10,8 +10,9 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiConsumes, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FirebaseStorageService, UploadResult } from './firebase-storage.service';
 
@@ -364,5 +365,44 @@ export class FirebaseStorageController {
   async fileExists(@Param('filePath') filePath: string): Promise<{ exists: boolean }> {
     const exists = await this.firebaseStorageService.fileExists(filePath);
     return { exists };
+  }
+
+  @Get('images-by-root')
+  @ApiOperation({
+    summary: 'Listar Imágenes y GIFs por Carpeta Raíz',
+    description: 'Devuelve todas las imágenes y GIFs dentro de las subcarpetas de una carpeta raíz, agrupadas por carpeta. Por ejemplo, root = "Ejercicios" devolverá archivos en Ejercicios/Pecho, Ejercicios/Espalda, etc.'
+  })
+  @ApiQuery({
+    name: 'root',
+    description: 'Carpeta raíz desde la que listar (por ejemplo, "Ejercicios")',
+    example: 'Ejercicios',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Listado agrupado por carpeta obtenido exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          folder: { type: 'string', example: 'Pecho' },
+          files: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', example: 'press-banca.gif' },
+                path: { type: 'string', example: 'Ejercicios/Pecho/press-banca.gif' },
+                url: { type: 'string', example: 'https://storage.googleapis.com/<bucket>/Ejercicios/Pecho/press-banca.gif' }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  async listImagesByRoot(@Query('root') root: string) {
+    return this.firebaseStorageService.listImagesAndGifsByRoot(root);
   }
 }

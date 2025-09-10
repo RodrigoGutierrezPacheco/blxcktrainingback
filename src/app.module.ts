@@ -11,6 +11,7 @@ import { MuscleGroupsModule } from './modules/muscle-groups/muscle-groups.module
 import { ExercisesModule } from './modules/exercises/exercises.module';
 import { TrainersModule } from './modules/trainers/trainers.module';
 import { FirebaseModule } from './common/firebase';
+import { MediaAssetsModule } from './modules/media-assets/media-assets.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { FirebaseModule } from './common/firebase';
     PlansModule,
     MuscleGroupsModule,
     ExercisesModule,
-    TrainersModule
+    TrainersModule,
+    MediaAssetsModule
   ],
   controllers: [AppController],
   providers: [AppService],

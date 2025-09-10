@@ -155,6 +155,53 @@ export class FirebaseStorageService {
   }
 
   /**
+   * List images and gifs grouped by immediate subfolder under a root folder
+   * Returns entries with the subfolder name and file info (name, path, url)
+   */
+  async listImagesAndGifsByRoot(rootFolder: string): Promise<Array<{ folder: string; files: Array<{ name: string; path: string; url: string }> }>> {
+    try {
+      const bucket = this.firebaseConfig.getBucket();
+      const normalizedRoot = rootFolder.endsWith('/') ? rootFolder : `${rootFolder}/`;
+      const [files] = await bucket.getFiles({ prefix: normalizedRoot });
+
+      const resultMap: Record<string, Array<{ name: string; path: string; url: string }>> = {};
+      const imageRegex = /(\.jpg|\.jpeg|\.png|\.gif)$/i;
+
+      for (const file of files) {
+        const fullPath = file.name; // e.g., Ejercicios/Pecho/press-banca.gif
+        if (!imageRegex.test(fullPath)) {
+          continue; // only images/gifs
+        }
+
+        if (!fullPath.startsWith(normalizedRoot)) {
+          continue;
+        }
+
+        const relative = fullPath.substring(normalizedRoot.length); // Pecho/press-banca.gif
+        const firstSlash = relative.indexOf('/');
+        if (firstSlash === -1) {
+          // file directly under root without subfolder; group under ''
+          const folder = '';
+          const url = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
+          if (!resultMap[folder]) resultMap[folder] = [];
+          resultMap[folder].push({ name: file.name.split('/').pop() as string, path: fullPath, url });
+          continue;
+        }
+
+        const folder = relative.substring(0, firstSlash);
+        const url = `https://storage.googleapis.com/${bucket.name}/${fullPath}`;
+        if (!resultMap[folder]) resultMap[folder] = [];
+        resultMap[folder].push({ name: file.name.split('/').pop() as string, path: fullPath, url });
+      }
+
+      return Object.entries(resultMap).map(([folder, files]) => ({ folder, files }));
+    } catch (error) {
+      this.logger.error(`Error listing images by root: ${error.message}`);
+      return [];
+    }
+  }
+
+  /**
    * Check if file exists
    */
   async fileExists(filePath: string): Promise<boolean> {
