@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, Length, IsUUID, IsOptional, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, Length, IsUUID, IsOptional, ValidateNested, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ImageDto {
@@ -26,6 +26,10 @@ export class CreateExerciseDto {
   @ValidateNested()
   @Type(() => ImageDto)
   image?: ImageDto;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'El ID de la imagen debe ser un UUID válido' })
+  imageId?: string;
 
   @IsUUID('4', { message: 'El ID del grupo muscular debe ser un UUID válido' })
   @IsNotEmpty({ message: 'El ID del grupo muscular es obligatorio' })

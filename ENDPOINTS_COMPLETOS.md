@@ -101,12 +101,15 @@ Sistema completo de gestión de entrenamiento con usuarios, entrenadores, admini
 
 ### **CRUD de Ejercicios**
 - **POST** `/exercises` - Crear nuevo ejercicio
+- **POST** `/exercises/with-image` - Crear ejercicio con imagen de Firebase Storage
+- **POST** `/exercises/with-image-id` - Crear ejercicio con ID de imagen
 - **GET** `/exercises` - Todos los ejercicios (activos e inactivos)
 - **GET** `/exercises/active` - Solo ejercicios activos
 - **GET** `/exercises/all` - Todos los ejercicios (activos e inactivos)
 - **GET** `/exercises/muscle-group/:muscleGroupId` - Ejercicios por grupo muscular
 - **GET** `/exercises/:id` - Ejercicio por ID
 - **PATCH** `/exercises/:id` - Actualizar ejercicio
+- **PATCH** `/exercises/:id/with-image` - Actualizar ejercicio con imagen de Firebase Storage
 - **DELETE** `/exercises/:id` - Eliminar ejercicio (soft delete)
 - **PATCH** `/exercises/:id/activate` - Activar ejercicio
 - **PATCH** `/exercises/:id/toggle-status` - Cambiar status activo/inactivo
@@ -443,18 +446,83 @@ curl -X PATCH http://localhost:8000/muscle-groups/UUID_DEL_GRUPO/toggle-status \
 ## 🏋️ **EJEMPLOS DE USO - EJERCICIOS**
 
 ### **Crear Ejercicio**
+
+#### **Opción 1: Con ID de Imagen (Recomendado)**
 ```bash
 curl -X POST http://localhost:8000/exercises \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Press de Banca",
-    "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.",
+    "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.",
+    "imageId": "ef2e0482-95a2-43e7-a6e8-46450b0ccc2d",
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000"
+  }'
+```
+
+#### **Opción 2: Con URL de Imagen Personalizada**
+```bash
+curl -X POST http://localhost:8000/exercises \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Flexiones",
+    "description": "Ejercicio de peso corporal para el pecho, tríceps y deltoides anteriores.",
     "image": {
       "type": "jpg",
-      "url": "https://ejemplo.com/press-banca.jpg"
+      "url": "https://ejemplo.com/flexiones.jpg"
     },
-    "muscleGroupId": "UUID_DEL_GRUPO_MUSCULAR"
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000"
+  }'
+```
+
+#### **Opción 3: Sin Imagen**
+```bash
+curl -X POST http://localhost:8000/exercises \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Plancha",
+    "description": "Ejercicio isométrico para fortalecer el core.",
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000"
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "id": "uuid-generado",
+  "name": "Press de Banca",
+  "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.",
+  "image": {
+    "type": "gif",
+    "url": "https://storage.googleapis.com/blxcktraining2.firebasestorage.app/Ejercicios/Pecho/press-banca.gif?X-Goog-Algorithm=..."
+  },
+  "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000",
+  "muscleGroupName": "Pecho",
+  "isActive": true,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+**Notas:**
+- **`imageId`**: Usa el UUID de una imagen de `media_assets` (recomendado)
+- **`image`**: Usa una URL personalizada de imagen
+- **Ambos campos son opcionales** - no puedes usar ambos al mismo tiempo
+- Si usas `imageId`, la imagen se marcará automáticamente como `isAssigned: true`
+- Si usas `image.url`, el sistema intentará extraer el `filePath` para marcar la imagen como asignada
+
+### **Crear Ejercicio con Imagen de Firebase Storage**
+```bash
+curl -X POST http://localhost:8000/exercises/with-image \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca",
+    "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.",
+    "muscleGroupId": "UUID_DEL_GRUPO_MUSCULAR",
+    "imagePath": "Ejercicios/Pecho/press-banca.gif"
   }'
 ```
 
@@ -465,8 +533,8 @@ curl -X POST http://localhost:8000/exercises \
   "name": "Press de Banca",
   "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.",
   "image": {
-    "type": "jpg",
-    "url": "https://ejemplo.com/press-banca.jpg"
+    "type": "gif",
+    "url": "https://storage.googleapis.com/blxcktraining2.firebasestorage.app/Ejercicios/Pecho/press-banca.gif?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=..."
   },
   "muscleGroupId": "UUID_DEL_GRUPO_MUSCULAR",
   "muscleGroupName": "Pecho",
@@ -475,6 +543,99 @@ curl -X POST http://localhost:8000/exercises \
   "updatedAt": "2024-01-15T16:00:00.000Z"
 }
 ```
+
+**Notas:**
+- El campo `imagePath` es opcional
+- Si se proporciona, debe ser una ruta válida de Firebase Storage registrada en `media_assets`
+- La URL de la imagen será una URL firmada temporal (60 minutos de validez)
+- Si no se proporciona `imagePath`, el ejercicio se creará sin imagen
+
+### **Crear Ejercicio con ID de Imagen**
+```bash
+curl -X POST http://localhost:8000/exercises/with-image-id \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca",
+    "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.",
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000",
+    "imageId": "ef2e0482-95a2-43e7-a6e8-46450b0ccc2d"
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "id": "uuid-generado",
+  "name": "Press de Banca",
+  "description": "Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.",
+  "image": {
+    "type": "gif",
+    "url": "https://storage.googleapis.com/blxcktraining2.firebasestorage.app/Ejercicios/Pecho/press-banca.gif?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=..."
+  },
+  "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000",
+  "muscleGroupName": "Pecho",
+  "isActive": true,
+  "createdAt": "2024-01-15T10:00:00.000Z",
+  "updatedAt": "2024-01-15T10:00:00.000Z"
+}
+```
+
+**Notas:**
+- El campo `imageId` es opcional
+- Si se proporciona, debe ser un UUID válido de una imagen en `media_assets`
+- La imagen se marcará automáticamente como `isAssigned: true`
+- Se genera una URL firmada temporal (60 minutos de validez)
+- Si no se proporciona `imageId`, el ejercicio se creará sin imagen
+
+### **Actualizar Ejercicio con Imagen de Firebase Storage**
+```bash
+curl -X PATCH http://localhost:8000/exercises/UUID_DEL_EJERCICIO/with-image \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca Inclinado",
+    "description": "Ejercicio compuesto para el pecho en banco inclinado que involucra pectoral mayor, tríceps y deltoides anteriores.",
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000",
+    "imagePath": "Ejercicios/Pecho/press-banca-inclinado.gif"
+  }'
+```
+
+**Respuesta:**
+```json
+{
+  "id": "uuid-del-ejercicio",
+  "name": "Press de Banca Inclinado",
+  "description": "Ejercicio compuesto para el pecho en banco inclinado que involucra pectoral mayor, tríceps y deltoides anteriores.",
+  "image": {
+    "type": "gif",
+    "url": "https://storage.googleapis.com/blxcktraining2.firebasestorage.app/Ejercicios/Pecho/press-banca-inclinado.gif?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=..."
+  },
+  "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000",
+  "muscleGroupName": "Pecho",
+  "isActive": true,
+  "updatedAt": "2024-01-15T16:00:00.000Z"
+}
+```
+
+**Actualización sin cambiar imagen:**
+```bash
+curl -X PATCH http://localhost:8000/exercises/UUID_DEL_EJERCICIO/with-image \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Press de Banca con Barra",
+    "description": "Descripción actualizada del press de banca con barra...",
+    "muscleGroupId": "123e4567-e89b-12d3-a456-426614174000"
+  }'
+```
+
+**Notas:**
+- Todos los campos son opcionales
+- Si se proporciona `imagePath`, debe ser una ruta válida registrada en `media_assets`
+- La imagen se actualiza con URL firmada temporal (60 minutos de validez)
+- Si no se proporciona `imagePath`, la imagen actual se mantiene
+- Se valida que el nombre sea único y el grupo muscular exista
 
 ### **Obtener Todos los Ejercicios (Activos e Inactivos)**
 ```bash
@@ -609,6 +770,75 @@ curl -X PATCH http://localhost:8000/users/trainer/TRAINER_UUID/toggle-verificati
 ```
 
 **Nota:** Solo los administradores pueden cambiar el status de verificación de los entrenadores.
+
+---
+
+## 🖼️ **EJEMPLOS DE USO - MEDIA ASSETS**
+
+### **Obtener Imágenes de una Carpeta con URLs Firmadas**
+```bash
+curl -X GET "http://localhost:8000/media-assets/by-folder?folder=Biceps&expirationMinutes=120" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**También disponible como:**
+```bash
+curl -X GET "http://localhost:8000/media-assets/by-folder-with-signed-urls?folder=Biceps&expirationMinutes=120" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**Respuesta:**
+```json
+[
+  {
+    "id": "ef2e0482-95a2-43e7-a6e8-46450b0ccc2d",
+    "folder": "Biceps",
+    "filePath": "Ejercicios/Biceps/Barbell-Curl-On-Arm-Blaster.gif",
+    "url": "https://storage.googleapis.com/blxcktraining2.firebasestorage.app/Ejercicios/Biceps/Barbell-Curl-On-Arm-Blaster.gif?GoogleAccessId=firebase-adminsdk-fbsvc%40blxcktraining2.iam.gserviceaccount.com&Expires=1757047986&Signature=...",
+    "name": "Curl con Barra en Arm Blaster",
+    "description": "Ejercicio para bíceps con barra en arm blaster",
+    "isAssigned": false,
+    "createdAt": "2025-09-05T03:53:56.958Z",
+    "updatedAt": "2025-09-05T03:53:56.958Z"
+  },
+  {
+    "id": "ca05de2a-316e-428e-8f93-29cce70c34c8",
+    "folder": "Biceps",
+    "filePath": "Ejercicios/Biceps/Concentration-Curl.gif",
+    "url": "https://storage.googleapis.com/...&X-Goog-Expires=...",
+    "name": "Curl de Concentración",
+    "description": "Ejercicio aislado para bíceps",
+    "isAssigned": true,
+    "createdAt": "2025-09-05T03:54:12.123Z",
+    "updatedAt": "2025-09-05T03:54:12.123Z"
+  }
+]
+```
+
+**Parámetros:**
+- `folder` (requerido): Nombre de la carpeta (ej: "Biceps", "Pecho", "Cardio")
+- `expirationMinutes` (opcional): Minutos de validez de las URLs firmadas (por defecto 60)
+
+**Notas:**
+- Las URLs firmadas son temporales y seguras
+- Si falla la generación de URL firmada, se devuelve la URL pública original
+- Se ordenan por nombre de archivo (ASC)
+- **`isAssigned`**: Indica si la imagen está siendo utilizada en algún ejercicio
+  - `false`: Imagen disponible para asignar a un ejercicio
+  - `true`: Imagen ya está asignada a un ejercicio
+- El estado se actualiza automáticamente cuando se crea, actualiza o elimina un ejercicio
+
+---
+
+## 🖼️ **GESTIÓN DE MEDIA ASSETS**
+
+### **CRUD de Media Assets**
+- **POST** `/media-assets/upsert` - Crear/actualizar metadatos de imagen/GIF
+- **GET** `/media-assets` - Listar todos los metadatos
+- **GET** `/media-assets/by-folder` - Listar imágenes de carpeta con URLs firmadas
+- **GET** `/media-assets/by-folder-with-signed-urls` - Listar imágenes de carpeta con URLs firmadas (alias)
+- **DELETE** `/media-assets` - Eliminar metadatos por filePath
+- **GET** `/media-assets/missing` - Listar archivos sin metadatos
 
 ---
 

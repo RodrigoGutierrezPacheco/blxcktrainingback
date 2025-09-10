@@ -13,7 +13,10 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { ExercisesService } from './exercises.service';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
+import { CreateExerciseWithImageDto } from './dto/create-exercise-with-image.dto';
+import { CreateExerciseWithImageIdDto } from './dto/create-exercise-with-image-id.dto';
 import { UpdateExerciseDto } from './dto/update-exercise.dto';
+import { UpdateExerciseWithImageDto } from './dto/update-exercise-with-image.dto';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 
 @ApiTags('🏋️ Gestión de Ejercicios')
@@ -27,22 +30,39 @@ export class ExercisesController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Crear Nuevo Ejercicio',
-    description: 'Crea un nuevo ejercicio en el sistema, asociándolo a un grupo muscular específico.'
+    description: 'Crea un nuevo ejercicio en el sistema, asociándolo a un grupo muscular específico. Puede usar imageId para asignar una imagen de media_assets o image para URL personalizada.'
   })
   @ApiBody({
     type: CreateExerciseDto,
     description: 'Datos del ejercicio a crear',
     examples: {
-      ejercicio1: {
-        summary: 'Ejercicio de Ejemplo',
+      ejercicioConImageId: {
+        summary: 'Ejercicio con ID de Imagen',
         value: {
           name: 'Press de Banca',
-          description: 'Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.',
+          description: 'Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.',
+          imageId: 'ef2e0482-95a2-43e7-a6e8-46450b0ccc2d',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      },
+      ejercicioConImageUrl: {
+        summary: 'Ejercicio con URL de Imagen',
+        value: {
+          name: 'Flexiones',
+          description: 'Ejercicio de peso corporal para el pecho, tríceps y deltoides anteriores.',
           image: {
             type: 'jpg',
-            url: 'https://ejemplo.com/press-banca.jpg'
+            url: 'https://ejemplo.com/flexiones.jpg'
           },
-          muscleGroupId: 'uuid-del-grupo-muscular'
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      },
+      ejercicioSinImagen: {
+        summary: 'Ejercicio sin Imagen',
+        value: {
+          name: 'Plancha',
+          description: 'Ejercicio isométrico para fortalecer el core.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
         }
       }
     }
@@ -75,6 +95,128 @@ export class ExercisesController {
   @ApiResponse({ status: 404, description: 'Grupo muscular no encontrado' })
   create(@Body() createDto: CreateExerciseDto) {
     return this.exercisesService.create(createDto);
+  }
+
+  @Post('with-image')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Crear Ejercicio con Imagen de Firebase',
+    description: 'Crea un nuevo ejercicio asociándolo a un grupo muscular y una imagen existente en Firebase Storage. La imagen debe estar registrada en la base de datos de media assets.'
+  })
+  @ApiBody({
+    type: CreateExerciseWithImageDto,
+    description: 'Datos del ejercicio a crear con imagen de Firebase',
+    examples: {
+      ejercicioConImagen: {
+        summary: 'Ejercicio con Imagen de Firebase',
+        value: {
+          name: 'Press de Banca',
+          description: 'Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000',
+          imagePath: 'Ejercicios/Pecho/press-banca.gif'
+        }
+      },
+      ejercicioSinImagen: {
+        summary: 'Ejercicio sin Imagen',
+        value: {
+          name: 'Flexiones',
+          description: 'Ejercicio de peso corporal para el pecho, tríceps y deltoides anteriores.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Ejercicio creado exitosamente con imagen de Firebase',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-generado' },
+        name: { type: 'string', example: 'Press de Banca' },
+        description: { type: 'string', example: 'Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores. Se realiza acostado en un banco plano.' },
+        image: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            type: { type: 'string', example: 'gif' },
+            url: { type: 'string', example: 'https://storage.googleapis.com/...&X-Goog-Expires=...' }
+          }
+        },
+        muscleGroupId: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+        muscleGroupName: { type: 'string', example: 'Pecho' },
+        isActive: { type: 'boolean', example: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Grupo muscular o imagen no encontrada' })
+  @ApiResponse({ status: 409, description: 'Ya existe un ejercicio con este nombre' })
+  createWithImage(@Body() createDto: CreateExerciseWithImageDto) {
+    return this.exercisesService.createWithImage(createDto);
+  }
+
+  @Post('with-image-id')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Crear Ejercicio con ID de Imagen',
+    description: 'Crea un nuevo ejercicio usando el ID de una imagen existente en media_assets. La imagen se marcará automáticamente como asignada (isAssigned: true).'
+  })
+  @ApiBody({
+    type: CreateExerciseWithImageIdDto,
+    description: 'Datos del ejercicio a crear con ID de imagen',
+    examples: {
+      ejercicioConImagenId: {
+        summary: 'Ejercicio con ID de Imagen',
+        value: {
+          name: 'Press de Banca',
+          description: 'Ejercicio compuesto para el pecho que involucra pectoral mayor, tríceps y deltoides anteriores.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000',
+          imageId: 'ef2e0482-95a2-43e7-a6e8-46450b0ccc2d'
+        }
+      },
+      ejercicioSinImagen: {
+        summary: 'Ejercicio sin Imagen',
+        value: {
+          name: 'Flexiones',
+          description: 'Ejercicio de peso corporal para el pecho, tríceps y deltoides anteriores.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Ejercicio creado exitosamente con imagen por ID',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-generado' },
+        name: { type: 'string', example: 'Press de Banca' },
+        description: { type: 'string', example: 'Ejercicio compuesto para el pecho...' },
+        image: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            type: { type: 'string', example: 'gif' },
+            url: { type: 'string', example: 'https://storage.googleapis.com/...&X-Goog-Expires=...' }
+          }
+        },
+        muscleGroupId: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+        muscleGroupName: { type: 'string', example: 'Pecho' },
+        isActive: { type: 'boolean', example: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Grupo muscular o imagen no encontrado' })
+  @ApiResponse({ status: 409, description: 'Ya existe un ejercicio con este nombre' })
+  createWithImageId(@Body() createDto: CreateExerciseWithImageIdDto) {
+    return this.exercisesService.createWithImageId(createDto);
   }
 
   @Get()
@@ -293,6 +435,72 @@ export class ExercisesController {
   @ApiResponse({ status: 404, description: 'Ejercicio o grupo muscular no encontrado' })
   update(@Param('id') id: string, @Body() updateDto: UpdateExerciseDto) {
     return this.exercisesService.update(id, updateDto);
+  }
+
+  @Patch(':id/with-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Actualizar Ejercicio con Imagen de Firebase',
+    description: 'Actualiza un ejercicio existente, incluyendo la posibilidad de cambiar su imagen por una de Firebase Storage. La imagen debe estar registrada en la base de datos de media assets.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID del ejercicio a actualizar',
+    example: 'uuid-del-ejercicio',
+    required: true
+  })
+  @ApiBody({
+    type: UpdateExerciseWithImageDto,
+    description: 'Datos a actualizar del ejercicio con imagen de Firebase',
+    examples: {
+      actualizacionConImagen: {
+        summary: 'Actualización con Nueva Imagen',
+        value: {
+          name: 'Press de Banca Inclinado',
+          description: 'Ejercicio compuesto para el pecho en banco inclinado que involucra pectoral mayor, tríceps y deltoides anteriores.',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000',
+          imagePath: 'Ejercicios/Pecho/press-banca-inclinado.gif'
+        }
+      },
+      actualizacionSinImagen: {
+        summary: 'Actualización sin Cambiar Imagen',
+        value: {
+          name: 'Press de Banca con Barra',
+          description: 'Descripción actualizada del press de banca con barra...',
+          muscleGroupId: '123e4567-e89b-12d3-a456-426614174000'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicio actualizado exitosamente con imagen de Firebase',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-del-ejercicio' },
+        name: { type: 'string', example: 'Press de Banca Inclinado' },
+        description: { type: 'string', example: 'Ejercicio compuesto para el pecho en banco inclinado...' },
+        image: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            type: { type: 'string', example: 'gif' },
+            url: { type: 'string', example: 'https://storage.googleapis.com/...&X-Goog-Expires=...' }
+          }
+        },
+        muscleGroupId: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+        muscleGroupName: { type: 'string', example: 'Pecho' },
+        isActive: { type: 'boolean', example: true },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Ejercicio, grupo muscular o imagen no encontrado' })
+  @ApiResponse({ status: 409, description: 'Ya existe un ejercicio con este nombre' })
+  updateWithImage(@Param('id') id: string, @Body() updateDto: UpdateExerciseWithImageDto) {
+    return this.exercisesService.updateWithImage(id, updateDto);
   }
 
   @Delete(':id')

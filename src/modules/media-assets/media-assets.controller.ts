@@ -30,11 +30,75 @@ export class MediaAssetsController {
   }
 
   @Get('by-folder')
-  @ApiOperation({ summary: 'Listar metadatos por carpeta' })
-  @ApiQuery({ name: 'folder', example: 'Pecho', required: true })
-  @ApiResponse({ status: 200, description: 'Listado por carpeta', type: [MediaAsset] })
-  getByFolder(@Query('folder') folder: string) {
-    return this.mediaService.getByFolder(folder);
+  @ApiOperation({ 
+    summary: 'Listar metadatos por carpeta con URLs firmadas', 
+    description: 'Obtiene todas las imágenes de una carpeta específica con URLs firmadas temporales de Firebase Storage'
+  })
+  @ApiQuery({ name: 'folder', example: 'Biceps', required: true, description: 'Nombre de la carpeta (ej: Biceps, Pecho, Cardio, etc.)' })
+  @ApiQuery({ name: 'expirationMinutes', example: 60, required: false, description: 'Minutos de expiración para las URLs firmadas (por defecto 60)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lista de imágenes de la carpeta con URLs firmadas',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'ef2e0482-95a2-43e7-a6e8-46450b0ccc2d' },
+          folder: { type: 'string', example: 'Biceps' },
+          filePath: { type: 'string', example: 'Ejercicios/Biceps/Barbell-Curl-On-Arm-Blaster.gif' },
+          url: { type: 'string', example: 'https://storage.googleapis.com/...&X-Goog-Expires=...' },
+          name: { type: 'string', example: 'Curl con Barra en Arm Blaster' },
+          description: { type: 'string', example: 'Ejercicio para bíceps con barra en arm blaster' },
+          isAssigned: { type: 'boolean', example: false },
+          createdAt: { type: 'string', example: '2025-09-05T03:53:56.958Z' },
+          updatedAt: { type: 'string', example: '2025-09-05T03:53:56.958Z' }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Carpeta no encontrada' })
+  async getByFolder(
+    @Query('folder') folder: string, 
+    @Query('expirationMinutes') expirationMinutes = 60
+  ) {
+    return this.mediaService.getByFolderWithAssignmentStatus(folder, Number(expirationMinutes) || 60);
+  }
+
+  @Get('by-folder-with-signed-urls')
+  @ApiOperation({ 
+    summary: 'Listar imágenes de una carpeta con URLs firmadas', 
+    description: 'Obtiene todas las imágenes de una carpeta específica con URLs firmadas temporales de Firebase Storage'
+  })
+  @ApiQuery({ name: 'folder', example: 'Biceps', required: true, description: 'Nombre de la carpeta (ej: Biceps, Pecho, Cardio, etc.)' })
+  @ApiQuery({ name: 'expirationMinutes', example: 60, required: false, description: 'Minutos de expiración para las URLs firmadas (por defecto 60)' })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lista de imágenes de la carpeta con URLs firmadas',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'ef2e0482-95a2-43e7-a6e8-46450b0ccc2d' },
+          folder: { type: 'string', example: 'Biceps' },
+          filePath: { type: 'string', example: 'Ejercicios/Biceps/Barbell-Curl-On-Arm-Blaster.gif' },
+          url: { type: 'string', example: 'https://storage.googleapis.com/...&X-Goog-Expires=...' },
+          name: { type: 'string', example: 'Curl con Barra en Arm Blaster' },
+          description: { type: 'string', example: 'Ejercicio para bíceps con barra en arm blaster' },
+          isAssigned: { type: 'boolean', example: false },
+          createdAt: { type: 'string', example: '2025-09-05T03:53:56.958Z' },
+          updatedAt: { type: 'string', example: '2025-09-05T03:53:56.958Z' }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Carpeta no encontrada' })
+  async getByFolderWithSignedUrls(
+    @Query('folder') folder: string, 
+    @Query('expirationMinutes') expirationMinutes = 60
+  ) {
+    return this.mediaService.getByFolderWithAssignmentStatus(folder, Number(expirationMinutes) || 60);
   }
 
   @Delete()

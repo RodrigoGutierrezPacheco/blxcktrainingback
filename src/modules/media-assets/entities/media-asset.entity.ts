@@ -21,6 +21,9 @@ export class MediaAsset {
   @Column({ type: 'text', nullable: true })
   description?: string | null;
 
+  @Column({ type: 'boolean', default: false, comment: 'Indica si la imagen está asignada a algún ejercicio' })
+  isAssigned: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
