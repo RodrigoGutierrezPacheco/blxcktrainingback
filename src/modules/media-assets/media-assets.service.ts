@@ -86,6 +86,26 @@ export class MediaAssetsService {
     }
   }
 
+  async markAsUnassignedById(imageId: string): Promise<void> {
+    const asset = await this.mediaRepo.findOne({ where: { id: imageId } });
+    if (asset) {
+      asset.isAssigned = false;
+      await this.mediaRepo.save(asset);
+    }
+  }
+
+  async markAllAsUnassigned(): Promise<{ message: string; updatedCount: number }> {
+    const result = await this.mediaRepo.update(
+      { isAssigned: true },
+      { isAssigned: false }
+    );
+    
+    return {
+      message: 'Todas las imágenes marcadas como no asignadas',
+      updatedCount: result.affected || 0
+    };
+  }
+
   async getByFolderWithAssignmentStatus(folder: string, expirationMinutes: number = 60): Promise<MediaAsset[]> {
     const assets = await this.mediaRepo.find({ 
       where: { folder }, 

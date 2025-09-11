@@ -136,6 +136,33 @@ export class MediaAssetsController {
 
     return groups;
   }
+
+  @Post('mark-all-unassigned')
+  @ApiOperation({ 
+    summary: 'Marcar todas las imágenes como no asignadas', 
+    description: 'Cambia el estado isAssigned a false para todas las imágenes que estén marcadas como asignadas (isAssigned: true).' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Todas las imágenes marcadas como no asignadas',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Todas las imágenes marcadas como no asignadas'
+        },
+        updatedCount: {
+          type: 'number',
+          example: 15,
+          description: 'Número de imágenes que fueron actualizadas'
+        }
+      }
+    }
+  })
+  markAllAsUnassigned() {
+    return this.mediaService.markAllAsUnassigned();
+  }
 }
 
 

@@ -17,6 +17,8 @@ import { CreateExerciseWithImageDto } from './dto/create-exercise-with-image.dto
 import { CreateExerciseWithImageIdDto } from './dto/create-exercise-with-image-id.dto';
 import { UpdateExerciseDto } from './dto/update-exercise.dto';
 import { UpdateExerciseWithImageDto } from './dto/update-exercise-with-image.dto';
+import { DeleteExerciseByImageDto } from './dto/delete-exercise-by-image.dto';
+import { UnassignImageFromExerciseDto } from './dto/unassign-image-from-exercise.dto';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 
 @ApiTags('🏋️ Gestión de Ejercicios')
@@ -381,6 +383,55 @@ export class ExercisesController {
     return this.exercisesService.findOne(id);
   }
 
+  @Patch('unassign-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Desasignar Imagen y Eliminar Ejercicio',
+    description: 'SIEMPRE desasigna la imagen (isAssigned: false) y elimina el ejercicio si existe y está activo. La imagen se marca como no asignada independientemente del estado del ejercicio.'
+  })
+  @ApiBody({
+    type: UnassignImageFromExerciseDto,
+    description: 'IDs del ejercicio y la imagen a desasignar y eliminar',
+    examples: {
+      desasignarImagen: {
+        summary: 'Desasignar imagen y eliminar ejercicio',
+        value: {
+          exerciseId: '16505f64-d83c-47f0-8bc9-325a1402debc',
+          imageId: 'b59d7cbb-87df-4484-b000-4af622e7038b'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Imagen desasignada exitosamente. El ejercicio se elimina si existe y está activo.',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Imagen desasignada exitosamente y ejercicio eliminado permanentemente',
+          description: 'Mensaje que varía según el escenario: imagen desasignada + estado del ejercicio'
+        },
+        exerciseId: {
+          type: 'string',
+          format: 'uuid',
+          example: '16505f64-d83c-47f0-8bc9-325a1402debc',
+          description: 'ID del ejercicio proporcionado'
+        },
+        imageId: {
+          type: 'string',
+          format: 'uuid',
+          example: 'b59d7cbb-87df-4484-b000-4af622e7038b',
+          description: 'ID de la imagen que fue marcada como no asignada'
+        }
+      }
+    }
+  })
+  unassignImageFromExercise(@Body() unassignDto: UnassignImageFromExerciseDto) {
+    return this.exercisesService.unassignImageFromExercise(unassignDto.exerciseId, unassignDto.imageId);
+  }
+
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -501,6 +552,57 @@ export class ExercisesController {
   @ApiResponse({ status: 409, description: 'Ya existe un ejercicio con este nombre' })
   updateWithImage(@Param('id') id: string, @Body() updateDto: UpdateExerciseWithImageDto) {
     return this.exercisesService.updateWithImage(id, updateDto);
+  }
+
+  @Delete('by-image')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Eliminar Ejercicio por ImageId',
+    description: 'Elimina un ejercicio del sistema basándose en el ID de la imagen asociada. Marca la imagen como no asignada (isAssigned: false) y realiza soft delete del ejercicio.'
+  })
+  @ApiBody({
+    type: DeleteExerciseByImageDto,
+    description: 'ID de la imagen asociada al ejercicio a eliminar',
+    examples: {
+      eliminarPorImagen: {
+        summary: 'Eliminar ejercicio por ID de imagen',
+        value: {
+          imageId: 'b59d7cbb-87df-4484-b000-4af622e7038b'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicio eliminado exitosamente y imagen marcada como no asignada',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Ejercicio eliminado exitosamente y imagen marcada como no asignada'
+        },
+        exerciseId: {
+          type: 'string',
+          format: 'uuid',
+          example: '16505f64-d83c-47f0-8bc9-325a1402debc',
+          description: 'ID del ejercicio eliminado'
+        },
+        imageId: {
+          type: 'string',
+          format: 'uuid',
+          example: 'b59d7cbb-87df-4484-b000-4af622e7038b',
+          description: 'ID de la imagen que fue marcada como no asignada'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'No se encontró un ejercicio activo con esta imagen asignada' 
+  })
+  removeByImageId(@Body() deleteDto: DeleteExerciseByImageDto) {
+    return this.exercisesService.removeByImageId(deleteDto.imageId);
   }
 
   @Delete(':id')

@@ -28,6 +28,35 @@ export class ExercisesService {
     private mediaAssetsService: MediaAssetsService,
   ) {}
 
+  // Función auxiliar para procesar imágenes de ejercicios
+  private async processExerciseImages(exercises: Exercise[]): Promise<Exercise[]> {
+    for (const exercise of exercises) {
+      if (exercise.image && exercise.image.url) {
+        // Extraer el filePath de la URL
+        const filePathMatch = exercise.image.url.match(/\/Ejercicios\/[^?]+/);
+        if (filePathMatch) {
+          const filePath = filePathMatch[0].substring(1); // Remover la barra inicial
+          try {
+            // Buscar el MediaAsset correspondiente para obtener el imageId
+            const mediaAsset = await this.mediaAssetRepository.findOne({
+              where: { filePath: filePath }
+            });
+            
+            if (mediaAsset) {
+              exercise.image.imageId = mediaAsset.id;
+            }
+            
+            const signedUrl = await this.firebaseStorageService.getSignedUrl(filePath, 3600); // 1 hora
+            exercise.image.url = signedUrl || exercise.image.url;
+          } catch (error) {
+            console.warn(`No se pudo generar URL firmada para ${filePath}:`, error);
+          }
+        }
+      }
+    }
+    return exercises;
+  }
+
   async create(createDto: CreateExerciseDto): Promise<Exercise> {
     // Verificar que el grupo muscular existe
     const muscleGroup = await this.muscleGroupRepository.findOne({
@@ -47,7 +76,7 @@ export class ExercisesService {
       throw new ConflictException('Ya existe un ejercicio con este nombre');
     }
 
-    let imageData: { type: string; url: string; } | null = createDto.image || null;
+    let imageData: { type: string; url: string; imageId?: string; } | null = createDto.image || null;
 
     // Si se proporciona un imageId, buscar el MediaAsset correspondiente
     if (createDto.imageId) {
@@ -61,7 +90,8 @@ export class ExercisesService {
         
         imageData = {
           type: mediaAsset.filePath.split('.').pop()?.toLowerCase() || 'gif',
-          url: signedUrl || mediaAsset.url
+          url: signedUrl || mediaAsset.url,
+          imageId: mediaAsset.id
         };
       } else {
         throw new NotFoundException('Imagen no encontrada en la base de datos de media assets');
@@ -184,7 +214,7 @@ export class ExercisesService {
       throw new ConflictException('Ya existe un ejercicio con este nombre');
     }
 
-    let imageData: { type: string; url: string; } | null = null;
+    let imageData: { type: string; url: string; imageId?: string; } | null = null;
 
     // Si se proporciona un imageId, buscar el MediaAsset correspondiente
     if (createDto.imageId) {
@@ -198,7 +228,8 @@ export class ExercisesService {
         
         imageData = {
           type: mediaAsset.filePath.split('.').pop()?.toLowerCase() || 'gif',
-          url: signedUrl || mediaAsset.url
+          url: signedUrl || mediaAsset.url,
+          imageId: mediaAsset.id
         };
       } else {
         throw new NotFoundException('Imagen no encontrada en la base de datos de media assets');
@@ -229,29 +260,37 @@ export class ExercisesService {
   }
 
   async findAll(): Promise<Exercise[]> {
-    return this.exerciseRepository.find({
+    const exercises = await this.exerciseRepository.find({
       order: { name: 'ASC' }
     });
+
+    return this.processExerciseImages(exercises);
   }
 
   async findAllActive(): Promise<Exercise[]> {
-    return this.exerciseRepository.find({
+    const exercises = await this.exerciseRepository.find({
       where: { isActive: true },
       order: { name: 'ASC' }
     });
+
+    return this.processExerciseImages(exercises);
   }
 
   async findAllIncludingInactive(): Promise<Exercise[]> {
-    return this.exerciseRepository.find({
+    const exercises = await this.exerciseRepository.find({
       order: { name: 'ASC' }
     });
+
+    return this.processExerciseImages(exercises);
   }
 
   async findByMuscleGroup(muscleGroupId: string): Promise<Exercise[]> {
-    return this.exerciseRepository.find({
+    const exercises = await this.exerciseRepository.find({
       where: { muscleGroupId },
       order: { name: 'ASC' }
     });
+
+    return this.processExerciseImages(exercises);
   }
 
   async findOne(id: string): Promise<Exercise> {
@@ -262,6 +301,9 @@ export class ExercisesService {
     if (!exercise) {
       throw new NotFoundException('Ejercicio no encontrado');
     }
+
+    // Procesar la imagen del ejercicio
+    await this.processExerciseImages([exercise]);
 
     return exercise;
   }
@@ -413,7 +455,7 @@ export class ExercisesService {
       const filePathMatch = url.match(/\/Ejercicios\/[^?]+/);
       
       if (filePathMatch) {
-        const filePath = filePathMatch[0];
+        const filePath = filePathMatch[0].substring(1); // Remover la barra inicial
         const asset = await this.mediaAssetRepository.findOne({
           where: { filePath: filePath }
         });
@@ -442,5 +484,73 @@ export class ExercisesService {
     await this.exerciseRepository.save(exercise);
     
     return { isActive: exercise.isActive };
+  }
+
+  async removeByImageId(imageId: string): Promise<{ message: string; exerciseId: string; imageId: string }> {
+    // Buscar el ejercicio que tiene esta imagen asignada
+    const exercises = await this.exerciseRepository.find({
+      where: { isActive: true }
+    });
+
+    let exerciseToDelete: Exercise | null = null;
+    for (const exercise of exercises) {
+      if (exercise.image && exercise.image.imageId === imageId) {
+        exerciseToDelete = exercise;
+        break;
+      }
+    }
+
+    if (!exerciseToDelete) {
+      throw new NotFoundException('No se encontró un ejercicio activo con esta imagen asignada');
+    }
+
+    // Marcar la imagen como no asignada
+    await this.mediaAssetsService.markAsUnassignedById(imageId);
+
+    // Soft delete del ejercicio
+    exerciseToDelete.isActive = false;
+    await this.exerciseRepository.save(exerciseToDelete);
+
+    return {
+      message: 'Ejercicio eliminado exitosamente y imagen marcada como no asignada',
+      exerciseId: exerciseToDelete.id,
+      imageId: imageId
+    };
+  }
+
+  async unassignImageFromExercise(exerciseId: string, imageId: string): Promise<{ message: string; exerciseId: string; imageId: string }> {
+    // SIEMPRE marcar la imagen como no asignada primero
+    await this.mediaAssetsService.markAsUnassignedById(imageId);
+
+    // Verificar que el ejercicio existe y está activo
+    const exercise = await this.exerciseRepository.findOne({
+      where: { id: exerciseId, isActive: true }
+    });
+
+    if (!exercise) {
+      return {
+        message: 'Imagen desasignada exitosamente. Ejercicio no encontrado o inactivo.',
+        exerciseId: exerciseId,
+        imageId: imageId
+      };
+    }
+
+    // Verificar que la imagen está asignada a este ejercicio
+    if (!exercise.image || exercise.image.imageId !== imageId) {
+      return {
+        message: 'Imagen desasignada exitosamente. La imagen no estaba asignada a este ejercicio.',
+        exerciseId: exerciseId,
+        imageId: imageId
+      };
+    }
+
+    // Eliminar el ejercicio completamente de la base de datos (hard delete)
+    await this.exerciseRepository.remove(exercise);
+
+    return {
+      message: 'Imagen desasignada exitosamente y ejercicio eliminado permanentemente',
+      exerciseId: exerciseId,
+      imageId: imageId
+    };
   }
 }

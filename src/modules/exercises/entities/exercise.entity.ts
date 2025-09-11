@@ -23,9 +23,9 @@ export class Exercise {
   @Column({ 
     type: 'json', 
     nullable: true, 
-    comment: 'Imagen del ejercicio con tipo y URL' 
+    comment: 'Imagen del ejercicio con tipo, URL e ID del media asset' 
   })
-  image: { type: string; url: string; } | null;
+  image: { type: string; url: string; imageId?: string; } | null;
 
   @Column({ 
     type: 'uuid', 
