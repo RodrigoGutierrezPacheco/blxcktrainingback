@@ -14,8 +14,11 @@ export class Exercise {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string;
+
+  @Column({ type: 'uuid', nullable: true, comment: 'ID del ejercicio del catálogo de ejercicios' })
+  exerciseId: string;
 
   @Column({ type: 'int', nullable: false })
   sets: number;

@@ -1,9 +1,14 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, ValidateNested, IsUUID, IsDateString } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, ValidateNested, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateExerciseDto {
+  @IsOptional()
   @IsString()
-  name: string;
+  name?: string;
+
+  @IsOptional()
+  @IsUUID()
+  exerciseId?: string;
 
   @IsNumber()
   sets: number;

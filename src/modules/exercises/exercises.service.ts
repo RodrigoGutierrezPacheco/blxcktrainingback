@@ -553,4 +553,40 @@ export class ExercisesService {
       imageId: imageId
     };
   }
+
+  async getExerciseFolders(): Promise<Array<{
+    id: string;
+    title: string;
+    description: string;
+    exerciseCount: number;
+    isActive: boolean;
+  }>> {
+    // Obtener todos los grupos musculares activos
+    const muscleGroups = await this.muscleGroupRepository.find({
+      where: { isActive: true },
+      order: { title: 'ASC' }
+    });
+
+    // Para cada grupo muscular, contar los ejercicios activos
+    const foldersWithCounts = await Promise.all(
+      muscleGroups.map(async (muscleGroup) => {
+        const exerciseCount = await this.exerciseRepository.count({
+          where: { 
+            muscleGroupId: muscleGroup.id,
+            isActive: true 
+          }
+        });
+
+        return {
+          id: muscleGroup.id,
+          title: muscleGroup.title,
+          description: muscleGroup.description,
+          exerciseCount,
+          isActive: muscleGroup.isActive
+        };
+      })
+    );
+
+    return foldersWithCounts;
+  }
 }

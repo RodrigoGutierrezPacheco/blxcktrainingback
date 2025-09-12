@@ -300,6 +300,32 @@ export class ExercisesController {
     return this.exercisesService.findAllIncludingInactive();
   }
 
+  @Get('folders')
+  @ApiOperation({
+    summary: 'Obtener Carpetas de Ejercicios con Conteo',
+    description: 'Obtiene todas las carpetas (grupos musculares) existentes y el número de ejercicios en cada una.'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de carpetas de ejercicios con conteo obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-grupo-muscular' },
+          title: { type: 'string', example: 'Pecho' },
+          description: { type: 'string', example: 'Grupo muscular del pecho' },
+          exerciseCount: { type: 'number', example: 15 },
+          isActive: { type: 'boolean', example: true }
+        }
+      }
+    }
+  })
+  getExerciseFolders() {
+    return this.exercisesService.getExerciseFolders();
+  }
+
   @Get('muscle-group/:muscleGroupId')
   @ApiOperation({
     summary: 'Obtener Ejercicios por Grupo Muscular',
