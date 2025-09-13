@@ -326,6 +326,127 @@ export class ExercisesController {
     return this.exercisesService.getExerciseFolders();
   }
 
+  @Get('folders/:folderId/exercises')
+  @ApiOperation({
+    summary: 'Obtener Ejercicios por ID de Carpeta',
+    description: 'Obtiene todos los ejercicios activos de una carpeta específica usando su UUID.'
+  })
+  @ApiParam({
+    name: 'folderId',
+    description: 'ID (UUID) de la carpeta (grupo muscular)',
+    example: 'uuid-del-grupo-muscular',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicios de la carpeta obtenidos exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-ejercicio' },
+          name: { type: 'string', example: 'Press de Banca' },
+          description: { type: 'string', example: 'Ejercicio compuesto para el pecho...' },
+          image: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              type: { type: 'string', example: 'jpg' },
+              url: { type: 'string', example: 'https://ejemplo.com/press-banca.jpg' }
+            }
+          },
+          muscleGroupId: { type: 'string', example: 'uuid-del-grupo-muscular' },
+          muscleGroupName: { type: 'string', example: 'Pecho' },
+          isActive: { type: 'boolean', example: true }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Carpeta no encontrada' })
+  getExercisesByFolderId(@Param('folderId') folderId: string) {
+    return this.exercisesService.getExercisesByFolderId(folderId);
+  }
+
+  @Get('folders/by-name/:folderName/exercises')
+  @ApiOperation({
+    summary: 'Obtener Ejercicios por Nombre de Carpeta',
+    description: 'Obtiene todos los ejercicios activos de una carpeta específica usando su nombre (título).'
+  })
+  @ApiParam({
+    name: 'folderName',
+    description: 'Nombre de la carpeta (grupo muscular)',
+    example: 'Pecho',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicios de la carpeta obtenidos exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-ejercicio' },
+          name: { type: 'string', example: 'Press de Banca' },
+          description: { type: 'string', example: 'Ejercicio compuesto para el pecho...' },
+          image: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              type: { type: 'string', example: 'jpg' },
+              url: { type: 'string', example: 'https://ejemplo.com/press-banca.jpg' }
+            }
+          },
+          muscleGroupId: { type: 'string', example: 'uuid-del-grupo-muscular' },
+          muscleGroupName: { type: 'string', example: 'Pecho' },
+          isActive: { type: 'boolean', example: true }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Carpeta no encontrada' })
+  getExercisesByFolderName(@Param('folderName') folderName: string) {
+    return this.exercisesService.getExercisesByFolderName(folderName);
+  }
+
+  @Get(':id/image')
+  @ApiOperation({
+    summary: 'Obtener Imagen de Ejercicio',
+    description: 'Obtiene la imagen de un ejercicio específico por su UUID. Devuelve la información completa de la imagen incluyendo URL firmada.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID único del ejercicio',
+    example: 'uuid-del-ejercicio',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Imagen del ejercicio obtenida exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        exerciseId: { type: 'string', example: 'uuid-del-ejercicio' },
+        exerciseName: { type: 'string', example: 'Press de Banca' },
+        image: {
+          type: 'object',
+          nullable: true,
+          properties: {
+            type: { type: 'string', example: 'jpg' },
+            url: { type: 'string', example: 'https://storage.googleapis.com/...' },
+            imageId: { type: 'string', example: 'uuid-de-la-imagen' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Ejercicio no encontrado' })
+  @ApiResponse({ status: 404, description: 'El ejercicio no tiene imagen asociada' })
+  getExerciseImage(@Param('id') id: string) {
+    return this.exercisesService.getExerciseImage(id);
+  }
+
   @Get('muscle-group/:muscleGroupId')
   @ApiOperation({
     summary: 'Obtener Ejercicios por Grupo Muscular',

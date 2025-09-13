@@ -589,4 +589,81 @@ export class ExercisesService {
 
     return foldersWithCounts;
   }
+
+  async getExercisesByFolderId(folderId: string): Promise<Exercise[]> {
+    // Verificar que el grupo muscular existe y está activo
+    const muscleGroup = await this.muscleGroupRepository.findOne({
+      where: { id: folderId, isActive: true }
+    });
+
+    if (!muscleGroup) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
+
+    // Obtener todos los ejercicios activos de este grupo muscular
+    const exercises = await this.exerciseRepository.find({
+      where: { 
+        muscleGroupId: folderId,
+        isActive: true 
+      },
+      order: { name: 'ASC' }
+    });
+
+    return this.processExerciseImages(exercises);
+  }
+
+  async getExercisesByFolderName(folderName: string): Promise<Exercise[]> {
+    // Verificar que el grupo muscular existe y está activo
+    const muscleGroup = await this.muscleGroupRepository.findOne({
+      where: { title: folderName, isActive: true }
+    });
+
+    if (!muscleGroup) {
+      throw new NotFoundException('Carpeta no encontrada');
+    }
+
+    // Obtener todos los ejercicios activos de este grupo muscular
+    const exercises = await this.exerciseRepository.find({
+      where: { 
+        muscleGroupId: muscleGroup.id,
+        isActive: true 
+      },
+      order: { name: 'ASC' }
+    });
+
+    return this.processExerciseImages(exercises);
+  }
+
+  async getExerciseImage(id: string): Promise<{
+    exerciseId: string;
+    exerciseName: string;
+    image: { type: string; url: string; imageId?: string; } | null;
+  }> {
+    // Buscar el ejercicio por ID
+    const exercise = await this.exerciseRepository.findOne({
+      where: { id }
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Ejercicio no encontrado');
+    }
+
+    // Si no tiene imagen, devolver null
+    if (!exercise.image) {
+      return {
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        image: null
+      };
+    }
+
+    // Procesar la imagen para obtener URL firmada
+    await this.processExerciseImages([exercise]);
+
+    return {
+      exerciseId: exercise.id,
+      exerciseName: exercise.name,
+      image: exercise.image
+    };
+  }
 }

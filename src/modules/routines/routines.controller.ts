@@ -252,6 +252,82 @@ export class RoutinesController {
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Actualizar Rutina',
+    description: 'Actualiza una rutina existente. Puede actualizar campos básicos y/o reemplazar completamente la estructura de semanas, días y ejercicios. Los ejercicios pueden incluir exerciseId para referenciar ejercicios del catálogo.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID único de la rutina a actualizar',
+    example: 'uuid-de-rutina',
+    required: true
+  })
+  @ApiBody({
+    type: UpdateRoutineDto,
+    description: 'Datos de la rutina a actualizar',
+    examples: {
+      actualizacion1: {
+        summary: 'Actualización Básica',
+        value: {
+          name: 'Rutina de Fuerza Actualizada',
+          description: 'Rutina actualizada para desarrollar fuerza muscular',
+          comments: 'Realizar 4 veces por semana'
+        }
+      },
+      actualizacion2: {
+        summary: 'Actualización Completa con Ejercicios',
+        value: {
+          name: 'Rutina de Fuerza Actualizada',
+          description: 'Rutina actualizada para desarrollar fuerza muscular',
+          comments: 'Realizar 4 veces por semana',
+          weeks: [
+            {
+              weekNumber: 1,
+              name: 'Semana 1 - Adaptación',
+              comments: 'Enfoque en técnica',
+              days: [
+                {
+                  dayNumber: 1,
+                  name: 'Día 1 - Pecho y Tríceps',
+                  comments: 'Ejercicios básicos',
+                  exercises: [
+                    {
+                      name: 'Press de Banca',
+                      exerciseId: 'uuid-del-ejercicio-del-catalogo',
+                      sets: 3,
+                      repetitions: 10,
+                      restBetweenSets: 90,
+                      restBetweenExercises: 120,
+                      comments: 'Mantener buena forma',
+                      order: 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutina actualizada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-rutina' },
+        name: { type: 'string', example: 'Rutina de Fuerza Actualizada' },
+        description: { type: 'string', example: 'Rutina actualizada para desarrollar fuerza muscular' },
+        comments: { type: 'string', example: 'Realizar 4 veces por semana' },
+        isActive: { type: 'boolean', example: true },
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Rutina no encontrada' })
   update(@Param('id') id: string, @Body() updateRoutineDto: UpdateRoutineDto) {
     return this.routinesService.update(id, updateRoutineDto);
   }

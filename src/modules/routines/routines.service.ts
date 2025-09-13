@@ -187,6 +187,7 @@ export class RoutinesService {
           for (const exerciseDto of dayDto.exercises) {
             const exercise = this.exerciseRepository.create({
               name: exerciseDto.name,
+              exerciseId: exerciseDto.exerciseId,
               sets: exerciseDto.sets,
               repetitions: exerciseDto.repetitions,
               restBetweenSets: exerciseDto.restBetweenSets,
