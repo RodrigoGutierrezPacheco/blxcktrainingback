@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsDateString, MinLength, MaxLength, IsNumber, Min, Max } from 'class-validator';
+import { IsOptional, IsString, IsDateString, MinLength, MaxLength, IsNumber, Min, Max, Matches } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -38,4 +38,11 @@ export class UpdateUserDto {
   @Min(0, { message: 'La altura no puede ser menor a 0 cm' })
   @Max(500, { message: 'La altura no puede ser mayor a 500 cm' })
   height?: number;
+
+  @IsOptional()
+  @IsString({ message: 'El teléfono debe ser una cadena de texto' })
+  @Matches(/^[\+]?[0-9\s\-\(\)]{10,20}$/, {
+    message: 'El teléfono debe tener un formato válido (10-20 dígitos)',
+  })
+  phone?: string;
 }

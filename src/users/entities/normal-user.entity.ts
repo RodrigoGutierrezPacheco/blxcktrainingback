@@ -17,6 +17,9 @@ export class NormalUser {
   @Column({ type: 'json', nullable: true })
   basicInfo: Record<string, any>;
 
+  @Column({ type: 'varchar', length: 20, nullable: true, comment: 'Número telefónico del usuario' })
+  phone?: string;
+
   @Column({ type: 'uuid', nullable: true })
   trainerId: string | null;
 

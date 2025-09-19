@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsNotEmpty, IsOptional, Matches } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../common/constants/validation-messages';
 
 export class CreateNormalUserDto {
@@ -15,6 +15,13 @@ export class CreateNormalUserDto {
 
   @IsString({ message: VALIDATION_MESSAGES.ROUTINE_IS_STRING })
   routine: string;
+
+  @IsOptional()
+  @IsString({ message: 'El teléfono debe ser una cadena de texto' })
+  @Matches(/^[\+]?[0-9\s\-\(\)]{10,20}$/, {
+    message: 'El teléfono debe tener un formato válido (10-20 dígitos)',
+  })
+  phone?: string;
 
   @IsOptional()
   basicInfo?: {

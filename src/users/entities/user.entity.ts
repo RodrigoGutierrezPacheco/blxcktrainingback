@@ -44,6 +44,9 @@ export class User {
   @Column({ type: 'text', nullable: true })
   healthIssues?: string;
 
+  @Column({ type: 'varchar', length: 20, nullable: true, comment: 'Número telefónico del usuario' })
+  phone?: string;
+
   @Column({ type: 'uuid', nullable: true })
   trainerId: string | null;
 

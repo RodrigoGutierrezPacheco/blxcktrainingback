@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsNotEmpty, Matches } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsNotEmpty, Matches, IsOptional } from 'class-validator';
 import { VALIDATION_MESSAGES } from '../../common/constants/validation-messages';
 
 export class CreateUserDto {
@@ -18,4 +18,11 @@ export class CreateUserDto {
     message: VALIDATION_MESSAGES.PASSWORD_PATTERN,
   })
   password: string;
+
+  @IsOptional()
+  @IsString({ message: 'El teléfono debe ser una cadena de texto' })
+  @Matches(/^[\+]?[0-9\s\-\(\)]{10,20}$/, {
+    message: 'El teléfono debe tener un formato válido (10-20 dígitos)',
+  })
+  phone?: string;
 }

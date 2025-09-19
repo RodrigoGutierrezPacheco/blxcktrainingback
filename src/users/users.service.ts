@@ -63,6 +63,7 @@ export class UsersService {
     const normalUser = this.normalUserRepository.create({
       baseUser,
       routine: createDto.routine,
+      phone: createDto.phone,
       basicInfo: createDto.basicInfo || {}
     });
 
@@ -113,6 +114,10 @@ export class UsersService {
 
     if (updateDto.height !== undefined) {
       updateData.height = updateDto.height;
+    }
+
+    if (updateDto.phone !== undefined) {
+      updateData.phone = updateDto.phone;
     }
 
     // Aplicar las actualizaciones
@@ -237,7 +242,7 @@ export class UsersService {
 
   async getUsersWithTrainers(): Promise<User[]> {
     return this.userRepository.find({
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'phone', 'trainerId', 'hasRoutine', 'createdAt', 'updatedAt']
     });
   }
 
@@ -286,7 +291,7 @@ export class UsersService {
   async findUserById(userId: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { id: userId },
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'dateOfBirth', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'phone', 'dateOfBirth', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt']
     });
   }
 
@@ -421,7 +426,7 @@ export class UsersService {
 
   async getUsersWithRoutineDetails(): Promise<User[]> {
     return this.userRepository.find({
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'phone', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
       order: { hasRoutine: 'DESC', fullName: 'ASC' }
     });
   }
@@ -447,7 +452,7 @@ export class UsersService {
         trainerId: IsNull(),
         isActive: true 
       },
-      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
+      select: ['id', 'fullName', 'email', 'role', 'age', 'weight', 'height', 'phone', 'trainerId', 'hasRoutine', 'isActive', 'createdAt', 'updatedAt'],
       order: { createdAt: 'DESC' }
     });
   }
