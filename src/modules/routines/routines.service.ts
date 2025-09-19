@@ -10,6 +10,7 @@ import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { ReassignRoutineDto } from './dto/reassign-routine.dto';
+import { CreateRoutineForUserDto } from './dto/create-routine-for-user.dto';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 
@@ -403,5 +404,93 @@ export class RoutinesService {
 
   getUsersWithRoutine(): Promise<User[]> {
     return this.usersService.getUsersWithRoutine();
+  }
+
+  async createRoutineForUser(createRoutineForUserDto: CreateRoutineForUserDto): Promise<{ routine: Routine; userRoutine: UserRoutine }> {
+    // Verificar que el usuario existe
+    const user = await this.usersService.findUserById(createRoutineForUserDto.user_id);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Verificar que el entrenador existe
+    const trainer = await this.usersService.findTrainerById(createRoutineForUserDto.trainer_id);
+    if (!trainer) {
+      throw new NotFoundException('Entrenador no encontrado');
+    }
+
+    // Crear la rutina
+    const routine = this.routineRepository.create({
+      name: createRoutineForUserDto.name,
+      description: createRoutineForUserDto.description,
+      comments: createRoutineForUserDto.comments,
+      totalWeeks: createRoutineForUserDto.totalWeeks,
+      isActive: createRoutineForUserDto.isActive ?? true,
+      trainer_id: createRoutineForUserDto.trainer_id,
+    });
+
+    const savedRoutine = await this.routineRepository.save(routine);
+
+    // Crear semanas, días y ejercicios
+    for (const weekDto of createRoutineForUserDto.weeks) {
+      const week = this.weekRepository.create({
+        weekNumber: weekDto.weekNumber,
+        name: weekDto.name,
+        comments: weekDto.comments,
+        routine_id: savedRoutine.id,
+      });
+
+      const savedWeek = await this.weekRepository.save(week);
+
+      for (const dayDto of weekDto.days) {
+        const day = this.dayRepository.create({
+          dayNumber: dayDto.dayNumber,
+          name: dayDto.name,
+          comments: dayDto.comments,
+          week_id: savedWeek.id,
+        });
+
+        const savedDay = await this.dayRepository.save(day);
+
+        for (const exerciseDto of dayDto.exercises) {
+          const exercise = this.exerciseRepository.create({
+            name: exerciseDto.name,
+            exerciseId: exerciseDto.exerciseId,
+            sets: exerciseDto.sets,
+            repetitions: exerciseDto.repetitions,
+            restBetweenSets: exerciseDto.restBetweenSets,
+            restBetweenExercises: exerciseDto.restBetweenExercises,
+            comments: exerciseDto.comments,
+            order: exerciseDto.order,
+            day_id: savedDay.id,
+          });
+
+          await this.exerciseRepository.save(exercise);
+        }
+      }
+    }
+
+    // Asignar la rutina al usuario
+    const userRoutine = this.userRoutineRepository.create({
+      user_id: createRoutineForUserDto.user_id,
+      routine_id: savedRoutine.id,
+      startDate: new Date(createRoutineForUserDto.startDate),
+      endDate: createRoutineForUserDto.endDate ? new Date(createRoutineForUserDto.endDate) : null,
+      notes: createRoutineForUserDto.notes,
+      isActive: true,
+    });
+
+    const savedUserRoutine = await this.userRoutineRepository.save(userRoutine);
+
+    // Actualizar el estado hasRoutine del usuario
+    await this.usersService.updateUserRoutineStatus(createRoutineForUserDto.user_id, true);
+
+    // Obtener la rutina completa con relaciones
+    const completeRoutine = await this.findOne(savedRoutine.id);
+
+    return {
+      routine: completeRoutine,
+      userRoutine: savedUserRoutine
+    };
   }
 }

@@ -170,8 +170,9 @@ export class UsersService {
       await this.userTrainerRepository.save(existingAssignment);
     }
 
-    // Actualizar el campo trainerId en la entidad User
+    // Actualizar el campo trainerId y marcar hasRoutine como false
     user.trainerId = assignDto.trainerId;
+    user.hasRoutine = false; // Marcar hasRoutine como false al asignar entrenador
     await this.userRepository.save(user);
 
     // Crear nueva asignación
@@ -222,13 +223,14 @@ export class UsersService {
       await this.userTrainerRepository.save(assignment);
     }
 
-    // Limpiar el campo trainerId en la entidad User
+    // Limpiar el campo trainerId y marcar hasRoutine como false
     const user = await this.userRepository.findOne({
       where: { id: userId }
     });
 
     if (user && user.trainerId) {
       user.trainerId = null;
+      user.hasRoutine = false; // Marcar hasRoutine como false al desasignar entrenador
       await this.userRepository.save(user);
     }
   }

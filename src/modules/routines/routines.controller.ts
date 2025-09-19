@@ -16,6 +16,7 @@ import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { ReassignRoutineDto } from './dto/reassign-routine.dto';
+import { CreateRoutineForUserDto } from './dto/create-routine-for-user.dto';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 import { Public } from '../../auth/decorators/public.decorator';
 
@@ -89,6 +90,132 @@ export class RoutinesController {
   @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
   create(@Body() createRoutineDto: CreateRoutineDto) {
     return this.routinesService.create(createRoutineDto);
+  }
+
+  @Post('create-for-user')
+  @ApiOperation({
+    summary: 'Crear Rutina Directamente para Usuario',
+    description: 'Crea una nueva rutina personalizada y la asigna directamente a un usuario específico. Esta operación crea la rutina, la estructura completa (semanas, días, ejercicios) y la asigna al usuario en una sola operación.'
+  })
+  @ApiBody({
+    type: CreateRoutineForUserDto,
+    description: 'Datos de la rutina personalizada para el usuario',
+    examples: {
+      rutinaPersonalizada: {
+        summary: 'Rutina Personalizada para Usuario',
+        value: {
+          user_id: '123e4567-e89b-12d3-a456-426614174000',
+          trainer_id: '123e4567-e89b-12d3-a456-426614174001',
+          name: 'Rutina Personalizada para Juan',
+          description: 'Rutina específica para los objetivos de Juan',
+          comments: 'Realizar 3 veces por semana',
+          totalWeeks: 4,
+          startDate: '2024-01-15T00:00:00.000Z',
+          endDate: '2024-02-15T00:00:00.000Z',
+          notes: 'Rutina creada específicamente para este usuario',
+          weeks: [
+            {
+              weekNumber: 1,
+              name: 'Semana 1 - Adaptación',
+              comments: 'Enfoque en la técnica',
+              days: [
+                {
+                  dayNumber: 1,
+                  name: 'Día de Pecho y Tríceps',
+                  comments: 'Trabajo de fuerza',
+                  exercises: [
+                    {
+                      name: 'Press de banca',
+                      sets: 4,
+                      repetitions: 8,
+                      restBetweenSets: 90,
+                      restBetweenExercises: 120,
+                      comments: 'Mantener la espalda recta',
+                      order: 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Rutina creada y asignada al usuario exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          example: 'Rutina creada y asignada al usuario exitosamente' 
+        },
+        routine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-generado' },
+            name: { type: 'string', example: 'Rutina Personalizada para Juan' },
+            description: { type: 'string', example: 'Rutina específica para los objetivos de Juan' },
+            totalWeeks: { type: 'number', example: 4 },
+            trainer_id: { type: 'string', example: 'uuid-entrenador' },
+            isActive: { type: 'boolean', example: true },
+            createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+          }
+        },
+        userRoutine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-generado' },
+            user_id: { type: 'string', example: 'uuid-usuario' },
+            routine_id: { type: 'string', example: 'uuid-rutina' },
+            startDate: { type: 'string', example: '2024-01-15T00:00:00.000Z' },
+            endDate: { type: 'string', example: '2024-02-15T00:00:00.000Z' },
+            notes: { type: 'string', example: 'Rutina creada específicamente para este usuario' },
+            isActive: { type: 'boolean', example: true },
+            createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Datos de entrada inválidos',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'array', items: { type: 'string' }, example: ['user_id debe ser un UUID válido'] },
+        error: { type: 'string', example: 'Bad Request' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Usuario o entrenador no encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  async createRoutineForUser(@Body() createRoutineForUserDto: CreateRoutineForUserDto) {
+    const result = await this.routinesService.createRoutineForUser(createRoutineForUserDto);
+    
+    return {
+      message: 'Rutina creada y asignada al usuario exitosamente',
+      routine: result.routine,
+      userRoutine: result.userRoutine
+    };
   }
 
   @Get()
