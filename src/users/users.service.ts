@@ -14,6 +14,7 @@ import { User } from './entities/user.entity';
 import * as bcrypt from 'bcrypt';
 import { Admin } from './entities/admin.entity';
 import { TrainerVerificationDocument } from '../modules/trainers/entities/trainer-verification-document.entity';
+import { UserRoutine } from '../modules/routines/entities/user-routine.entity';
 
 @Injectable()
 export class UsersService {
@@ -38,6 +39,9 @@ export class UsersService {
 
     @InjectRepository(TrainerVerificationDocument)
     private trainerVerificationDocumentRepository: Repository<TrainerVerificationDocument>,
+
+    @InjectRepository(UserRoutine)
+    private userRoutineRepository: Repository<UserRoutine>,
   ) {}
 
   async createNormalUser(createDto: CreateNormalUserDto): Promise<NormalUser> {
@@ -191,7 +195,7 @@ export class UsersService {
     return this.userTrainerRepository.save(userTrainer);
   }
 
-  async getUsersByTrainer(trainerId: string): Promise<User[]> {
+  async getUsersByTrainer(trainerId: string): Promise<any[]> {
     const assignments = await this.userTrainerRepository.find({
       where: { 
         trainer: { id: trainerId },
@@ -200,7 +204,158 @@ export class UsersService {
       relations: ['user']
     });
 
-    return assignments.map(assignment => assignment.user);
+    return Promise.all(assignments.map(async (assignment) => {
+      const user = assignment.user;
+      
+      // Buscar la rutina activa del usuario
+      const userRoutine = await this.userRoutineRepository.findOne({
+        where: { 
+          user_id: user.id,
+          isActive: true 
+        },
+        order: { createdAt: 'DESC' } // Obtener la más reciente
+      });
+
+      // Calcular información de la rutina
+      const routineInfo = {
+        hasRoutine: user.hasRoutine,
+        assignedAt: assignment.assignedAt,
+        routineEndDate: null as Date | null,
+        daysRemaining: null as number | null,
+        startDate: null as Date | null,
+        endDate: null as Date | null,
+        notes: null as string | null
+      };
+
+      if (userRoutine) {
+        routineInfo.startDate = userRoutine.startDate;
+        routineInfo.endDate = userRoutine.endDate;
+        routineInfo.notes = userRoutine.notes;
+        
+        // Usar la fecha real de finalización si existe
+        if (userRoutine.endDate) {
+          routineInfo.routineEndDate = userRoutine.endDate;
+          
+          // Crear fechas en UTC para evitar problemas de zona horaria
+          const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          
+          // Convertir endDate a fecha local (asumiendo formato YYYY-MM-DD)
+          const endDateStr = userRoutine.endDate.toString();
+          const [year, month, day] = endDateStr.split('-').map(Number);
+          const endDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-indexado
+          
+          // Calcular diferencia en días
+          const timeDiff = endDate.getTime() - today.getTime();
+          routineInfo.daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        }
+      }
+
+      return {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        age: user.age,
+        weight: user.weight,
+        height: user.height,
+        chronicDiseases: user.chronicDiseases,
+        dateOfBirth: user.dateOfBirth,
+        healthIssues: user.healthIssues,
+        phone: user.phone,
+        trainerId: user.trainerId,
+        hasRoutine: user.hasRoutine,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        // Información adicional sobre la rutina
+        routineInfo
+      };
+    }));
+  }
+
+  async getUsersWithRoutineByTrainer(trainerId: string): Promise<any[]> {
+    const assignments = await this.userTrainerRepository.find({
+      where: { 
+        trainer: { id: trainerId },
+        isActive: true 
+      },
+      relations: ['user']
+    });
+
+    const usersWithRoutine: any[] = [];
+
+    for (const assignment of assignments) {
+      const user = assignment.user;
+      
+      // Solo procesar usuarios que tienen rutina
+      if (!user.hasRoutine) {
+        continue;
+      }
+
+      // Buscar la rutina activa del usuario
+      const userRoutine = await this.userRoutineRepository.findOne({
+        where: { 
+          user_id: user.id,
+          isActive: true 
+        },
+        order: { createdAt: 'DESC' } // Obtener la más reciente
+      });
+
+      if (!userRoutine) {
+        continue; // Si no tiene rutina activa, saltar
+      }
+
+      // Calcular información de la rutina
+      const routineInfo = {
+        hasRoutine: user.hasRoutine,
+        assignedAt: assignment.assignedAt,
+        routineEndDate: null as Date | null,
+        daysRemaining: null as number | null,
+        startDate: userRoutine.startDate,
+        endDate: userRoutine.endDate,
+        notes: userRoutine.notes
+      };
+
+      // Calcular días restantes si tiene fecha de finalización
+      if (userRoutine.endDate) {
+        routineInfo.routineEndDate = userRoutine.endDate;
+        
+        // Crear fechas en UTC para evitar problemas de zona horaria
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        // Convertir endDate a fecha local (asumiendo formato YYYY-MM-DD)
+        const endDateStr = userRoutine.endDate.toString();
+        const [year, month, day] = endDateStr.split('-').map(Number);
+        const endDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-indexado
+        
+        // Calcular diferencia en días
+        const timeDiff = endDate.getTime() - today.getTime();
+        routineInfo.daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+      }
+
+      usersWithRoutine.push({
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        age: user.age,
+        weight: user.weight,
+        height: user.height,
+        chronicDiseases: user.chronicDiseases,
+        dateOfBirth: user.dateOfBirth,
+        healthIssues: user.healthIssues,
+        phone: user.phone,
+        trainerId: user.trainerId,
+        hasRoutine: user.hasRoutine,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        // Información de la rutina
+        routineInfo
+      });
+    }
+
+    return usersWithRoutine;
   }
 
   async getTrainerByUser(userId: string): Promise<Trainer | null> {

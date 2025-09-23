@@ -44,6 +44,8 @@ export class RoutinesService {
       totalWeeks: createRoutineDto.totalWeeks,
       isActive: createRoutineDto.isActive ?? true,
       trainer_id: createRoutineDto.trainer_id,
+      suggestedStartDate: createRoutineDto.suggestedStartDate ? new Date(createRoutineDto.suggestedStartDate) : null,
+      suggestedEndDate: createRoutineDto.suggestedEndDate ? new Date(createRoutineDto.suggestedEndDate) : null,
     });
 
     const savedRoutine = await this.routineRepository.save(routine);
@@ -145,6 +147,33 @@ export class RoutinesService {
       where: { trainer_id: trainerId },
       relations: ['weeks', 'weeks.days', 'weeks.days.exercises'],
     });
+  }
+
+  async findUnassignedRoutinesByTrainer(trainerId: string): Promise<Routine[]> {
+    // Obtener todas las rutinas del entrenador
+    const allRoutines = await this.routineRepository.find({
+      where: { 
+        trainer_id: trainerId,
+        isActive: true 
+      },
+      relations: ['weeks', 'weeks.days', 'weeks.days.exercises'],
+    });
+
+    // Obtener todas las rutinas que están asignadas a usuarios
+    const assignedRoutineIds = await this.userRoutineRepository
+      .createQueryBuilder('userRoutine')
+      .select('DISTINCT userRoutine.routine_id', 'routine_id')
+      .where('userRoutine.isActive = :isActive', { isActive: true })
+      .getRawMany();
+
+    const assignedIds = assignedRoutineIds.map(item => item.routine_id);
+
+    // Filtrar las rutinas que NO están asignadas
+    const unassignedRoutines = allRoutines.filter(routine => 
+      !assignedIds.includes(routine.id)
+    );
+
+    return unassignedRoutines;
   }
 
   async update(id: string, updateRoutineDto: UpdateRoutineDto): Promise<Routine> {

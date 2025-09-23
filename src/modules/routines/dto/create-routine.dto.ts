@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, ValidateNested, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean, IsArray, ValidateNested, IsUUID, IsDateString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateExerciseDto {
@@ -87,6 +87,14 @@ export class CreateRoutineDto {
 
   @IsUUID()
   trainer_id: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedStartDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  suggestedEndDate?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

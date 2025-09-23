@@ -270,7 +270,7 @@ export class UsersController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Lista de usuarios obtenida exitosamente',
+    description: 'Lista de usuarios obtenida exitosamente (sin role ni password)',
     schema: {
       type: 'array',
       items: {
@@ -279,11 +279,30 @@ export class UsersController {
           id: { type: 'string', example: 'uuid-del-usuario' },
           email: { type: 'string', example: 'usuario@ejemplo.com' },
           fullName: { type: 'string', example: 'Juan Pérez' },
-          role: { type: 'string', example: 'user' },
-          age: { type: 'number', example: 25 },
-          trainerId: { type: 'string', example: 'uuid-del-entrenador' },
+          age: { type: 'number', example: 25, nullable: true },
+          weight: { type: 'number', example: 70, nullable: true },
+          height: { type: 'number', example: 175, nullable: true },
+          chronicDiseases: { type: 'string', example: 'Diabetes tipo 2', nullable: true },
+          dateOfBirth: { type: 'string', example: '1995-05-15', nullable: true },
+          healthIssues: { type: 'string', example: 'Problemas de espalda', nullable: true },
+          phone: { type: 'string', example: '+52 55 1234 5678', nullable: true },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador', nullable: true },
           hasRoutine: { type: 'boolean', example: true },
-          isActive: { type: 'boolean', example: true }
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          routineInfo: {
+            type: 'object',
+            properties: {
+              hasRoutine: { type: 'boolean', example: true },
+              assignedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z', nullable: true },
+              routineEndDate: { type: 'string', example: '2024-02-14T10:00:00.000Z', nullable: true },
+              daysRemaining: { type: 'number', example: 15, nullable: true },
+              startDate: { type: 'string', example: '2024-01-15T00:00:00.000Z', nullable: true },
+              endDate: { type: 'string', example: '2024-02-14T00:00:00.000Z', nullable: true },
+              notes: { type: 'string', example: 'Rutina asignada por el entrenador', nullable: true }
+            }
+          }
         }
       }
     }
@@ -291,6 +310,62 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   async getUsersByTrainer(@Param() params: GetUsersByTrainerDto) {
     return this.usersService.getUsersByTrainer(params.trainerId);
+  }
+
+  @Get('by-trainer/:trainerId/with-routine')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Obtener Usuarios con Rutina por Entrenador',
+    description: 'Obtiene la lista de usuarios asignados a un entrenador específico que tienen rutina activa, incluyendo información detallada sobre el tiempo restante de la rutina.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de usuarios con rutina obtenida exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-del-usuario' },
+          email: { type: 'string', example: 'usuario@ejemplo.com' },
+          fullName: { type: 'string', example: 'Juan Pérez' },
+          age: { type: 'number', example: 25, nullable: true },
+          weight: { type: 'number', example: 70, nullable: true },
+          height: { type: 'number', example: 175, nullable: true },
+          chronicDiseases: { type: 'string', example: 'Diabetes tipo 2', nullable: true },
+          dateOfBirth: { type: 'string', example: '1995-05-15', nullable: true },
+          healthIssues: { type: 'string', example: 'Problemas de espalda', nullable: true },
+          phone: { type: 'string', example: '+52 55 1234 5678', nullable: true },
+          trainerId: { type: 'string', example: 'uuid-del-entrenador', nullable: true },
+          hasRoutine: { type: 'boolean', example: true },
+          isActive: { type: 'boolean', example: true },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          routineInfo: {
+            type: 'object',
+            properties: {
+              hasRoutine: { type: 'boolean', example: true },
+              assignedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z', nullable: true },
+              routineEndDate: { type: 'string', example: '2024-02-14T10:00:00.000Z', nullable: true },
+              daysRemaining: { type: 'number', example: 15, nullable: true },
+              startDate: { type: 'string', example: '2024-01-15T00:00:00.000Z', nullable: true },
+              endDate: { type: 'string', example: '2024-02-14T00:00:00.000Z', nullable: true },
+              notes: { type: 'string', example: 'Rutina asignada por el entrenador', nullable: true }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
+  async getUsersWithRoutineByTrainer(@Param() params: GetUsersByTrainerDto) {
+    return this.usersService.getUsersWithRoutineByTrainer(params.trainerId);
   }
 
   @Get('with-trainers')

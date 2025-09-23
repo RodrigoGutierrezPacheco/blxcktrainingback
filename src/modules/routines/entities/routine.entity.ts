@@ -39,6 +39,12 @@ export class Routine {
   @Column({ type: 'uuid', nullable: false })
   trainer_id: string;
 
+  @Column({ type: 'date', nullable: true, comment: 'Fecha de inicio sugerida para la rutina' })
+  suggestedStartDate: Date | null;
+
+  @Column({ type: 'date', nullable: true, comment: 'Fecha de finalización sugerida para la rutina' })
+  suggestedEndDate: Date | null;
+
   @OneToMany(() => Week, (week) => week.routine, {
     cascade: true,
     onDelete: 'CASCADE',

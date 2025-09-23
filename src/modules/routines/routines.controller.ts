@@ -30,7 +30,7 @@ export class RoutinesController {
   @Post()
   @ApiOperation({
     summary: 'Crear Nueva Rutina',
-    description: 'Crea una nueva rutina de entrenamiento con semanas, días y ejercicios.'
+    description: 'Crea una nueva rutina de entrenamiento con semanas, días y ejercicios. Opcionalmente puede incluir fechas sugeridas de inicio y finalización.'
   })
   @ApiBody({
     type: CreateRoutineDto,
@@ -42,6 +42,8 @@ export class RoutinesController {
           name: 'Rutina de Fuerza',
           description: 'Rutina para desarrollar fuerza muscular',
           comments: 'Realizar 3 veces por semana',
+          totalWeeks: 4,
+          trainer_id: 'uuid-del-entrenador',
           weeks: [
             {
               weekNumber: 1,
@@ -68,6 +70,43 @@ export class RoutinesController {
             }
           ]
         }
+      },
+      rutinaConFechas: {
+        summary: 'Rutina con Fechas Sugeridas',
+        value: {
+          name: 'Rutina de Fuerza Avanzada',
+          description: 'Rutina para desarrollar fuerza muscular avanzada',
+          comments: 'Realizar 4 veces por semana',
+          totalWeeks: 6,
+          trainer_id: 'uuid-del-entrenador',
+          suggestedStartDate: '2024-01-15T00:00:00.000Z',
+          suggestedEndDate: '2024-03-15T00:00:00.000Z',
+          weeks: [
+            {
+              weekNumber: 1,
+              name: 'Semana 1 - Adaptación',
+              comments: 'Enfoque en técnica',
+              days: [
+                {
+                  dayNumber: 1,
+                  name: 'Día 1 - Pecho y Tríceps',
+                  comments: 'Ejercicios básicos',
+                  exercises: [
+                    {
+                      name: 'Press de Banca',
+                      sets: 4,
+                      repetitions: 8,
+                      restBetweenSets: 90,
+                      restBetweenExercises: 120,
+                      comments: 'Mantener buena forma',
+                      order: 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       }
     }
   })
@@ -81,7 +120,11 @@ export class RoutinesController {
         name: { type: 'string', example: 'Rutina de Fuerza' },
         description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
         comments: { type: 'string', example: 'Realizar 3 veces por semana' },
+        totalWeeks: { type: 'number', example: 4 },
         isActive: { type: 'boolean', example: true },
+        trainer_id: { type: 'string', example: 'uuid-del-entrenador' },
+        suggestedStartDate: { type: 'string', example: '2024-01-15T00:00:00.000Z', nullable: true },
+        suggestedEndDate: { type: 'string', example: '2024-03-15T00:00:00.000Z', nullable: true },
         createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
         updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
       }
@@ -307,6 +350,80 @@ export class RoutinesController {
   @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
   findByTrainer(@Param('trainerId') trainerId: string) {
     return this.routinesService.findByTrainer(trainerId);
+  }
+
+  @Get('trainer/:trainerId/unassigned')
+  @ApiOperation({
+    summary: 'Obtener Rutinas No Asignadas por Entrenador',
+    description: 'Obtiene todas las rutinas creadas por un entrenador específico que NO están asignadas a ningún usuario.'
+  })
+  @ApiParam({
+    name: 'trainerId',
+    description: 'ID del entrenador',
+    example: 'uuid-del-entrenador',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutinas no asignadas del entrenador obtenidas exitosamente',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', example: 'uuid-de-rutina' },
+          name: { type: 'string', example: 'Rutina de Fuerza' },
+          description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
+          comments: { type: 'string', example: 'Realizar 3 veces por semana' },
+          totalWeeks: { type: 'number', example: 4 },
+          isActive: { type: 'boolean', example: true },
+          trainer_id: { type: 'string', example: 'uuid-del-entrenador' },
+          createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          weeks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                weekNumber: { type: 'number', example: 1 },
+                name: { type: 'string', example: 'Semana 1 - Adaptación' },
+                comments: { type: 'string', example: 'Enfoque en técnica' },
+                days: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      dayNumber: { type: 'number', example: 1 },
+                      name: { type: 'string', example: 'Día 1 - Pecho y Tríceps' },
+                      comments: { type: 'string', example: 'Ejercicios básicos' },
+                      exercises: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', example: 'Press de Banca' },
+                            sets: { type: 'number', example: 3 },
+                            repetitions: { type: 'number', example: 10 },
+                            restBetweenSets: { type: 'number', example: 90 },
+                            restBetweenExercises: { type: 'number', example: 120 },
+                            comments: { type: 'string', example: 'Mantener buena forma' },
+                            order: { type: 'number', example: 1 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 404, description: 'Entrenador no encontrado' })
+  findUnassignedRoutinesByTrainer(@Param('trainerId') trainerId: string) {
+    return this.routinesService.findUnassignedRoutinesByTrainer(trainerId);
   }
 
   @Get(':id')
