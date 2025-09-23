@@ -142,11 +142,32 @@ export class RoutinesService {
     return routine;
   }
 
-  async findByTrainer(trainerId: string): Promise<Routine[]> {
-    return this.routineRepository.find({
+  async findByTrainer(trainerId: string): Promise<any[]> {
+    const routines = await this.routineRepository.find({
       where: { trainer_id: trainerId },
       relations: ['weeks', 'weeks.days', 'weeks.days.exercises'],
     });
+
+    // Para cada rutina, verificar si está asignada a algún usuario
+    const routinesWithAssignmentStatus = await Promise.all(
+      routines.map(async (routine) => {
+        // Verificar si la rutina está asignada a algún usuario activo
+        const assignmentCount = await this.userRoutineRepository.count({
+          where: {
+            routine_id: routine.id,
+            isActive: true
+          }
+        });
+
+        return {
+          ...routine,
+          isAssigned: assignmentCount > 0,
+          assignmentCount: assignmentCount
+        };
+      })
+    );
+
+    return routinesWithAssignmentStatus;
   }
 
   async findUnassignedRoutinesByTrainer(trainerId: string): Promise<Routine[]> {
@@ -456,6 +477,8 @@ export class RoutinesService {
       totalWeeks: createRoutineForUserDto.totalWeeks,
       isActive: createRoutineForUserDto.isActive ?? true,
       trainer_id: createRoutineForUserDto.trainer_id,
+      suggestedStartDate: createRoutineForUserDto.suggestedStartDate ? new Date(createRoutineForUserDto.suggestedStartDate) : null,
+      suggestedEndDate: createRoutineForUserDto.suggestedEndDate ? new Date(createRoutineForUserDto.suggestedEndDate) : null,
     });
 
     const savedRoutine = await this.routineRepository.save(routine);
@@ -499,13 +522,26 @@ export class RoutinesService {
       }
     }
 
+    // Eliminar todas las rutinas anteriores del usuario
+    await this.userRoutineRepository.delete({
+      user_id: createRoutineForUserDto.user_id
+    });
+
     // Asignar la rutina al usuario
+    // Usar las fechas sugeridas si no se proporcionan fechas específicas
+    const assignmentStartDate = createRoutineForUserDto.startDate || createRoutineForUserDto.suggestedStartDate;
+    const assignmentEndDate = createRoutineForUserDto.endDate || createRoutineForUserDto.suggestedEndDate;
+
+    if (!assignmentStartDate) {
+      throw new BadRequestException('Se requiere startDate o suggestedStartDate para asignar la rutina');
+    }
+
     const userRoutine = this.userRoutineRepository.create({
       user_id: createRoutineForUserDto.user_id,
       routine_id: savedRoutine.id,
-      startDate: new Date(createRoutineForUserDto.startDate),
-      endDate: createRoutineForUserDto.endDate ? new Date(createRoutineForUserDto.endDate) : null,
-      notes: createRoutineForUserDto.notes,
+      startDate: new Date(assignmentStartDate),
+      endDate: assignmentEndDate ? new Date(assignmentEndDate) : null,
+      notes: createRoutineForUserDto.notes || 'Rutina creada y asignada automáticamente',
       isActive: true,
     });
 

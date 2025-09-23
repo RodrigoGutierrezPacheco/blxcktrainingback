@@ -236,7 +236,7 @@ export class UsersService {
         if (userRoutine.endDate) {
           routineInfo.routineEndDate = userRoutine.endDate;
           
-          // Crear fechas en UTC para evitar problemas de zona horaria
+          // Obtener fecha actual (solo fecha, sin hora)
           const now = new Date();
           const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           
@@ -245,9 +245,12 @@ export class UsersService {
           const [year, month, day] = endDateStr.split('-').map(Number);
           const endDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-indexado
           
-          // Calcular diferencia en días
+          // Calcular diferencia en días (endDate - today)
           const timeDiff = endDate.getTime() - today.getTime();
-          routineInfo.daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+          const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+          
+          // Si la fecha ya pasó, devolver 0, si no, devolver los días restantes
+          routineInfo.daysRemaining = daysDiff > 0 ? daysDiff : 0;
         }
       }
 
@@ -320,7 +323,7 @@ export class UsersService {
       if (userRoutine.endDate) {
         routineInfo.routineEndDate = userRoutine.endDate;
         
-        // Crear fechas en UTC para evitar problemas de zona horaria
+        // Obtener fecha actual (solo fecha, sin hora)
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         
@@ -329,9 +332,12 @@ export class UsersService {
         const [year, month, day] = endDateStr.split('-').map(Number);
         const endDate = new Date(year, month - 1, day); // month - 1 porque Date usa 0-indexado
         
-        // Calcular diferencia en días
+        // Calcular diferencia en días (endDate - today)
         const timeDiff = endDate.getTime() - today.getTime();
-        routineInfo.daysRemaining = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        // Si la fecha ya pasó, devolver 0, si no, devolver los días restantes
+        routineInfo.daysRemaining = daysDiff > 0 ? daysDiff : 0;
       }
 
       usersWithRoutine.push({

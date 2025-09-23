@@ -156,6 +156,8 @@ export class RoutinesController {
           startDate: '2024-01-15T00:00:00.000Z',
           endDate: '2024-02-15T00:00:00.000Z',
           notes: 'Rutina creada específicamente para este usuario',
+          suggestedStartDate: '2024-01-15T00:00:00.000Z',
+          suggestedEndDate: '2024-03-15T00:00:00.000Z',
           weeks: [
             {
               weekNumber: 1,
@@ -203,6 +205,8 @@ export class RoutinesController {
             description: { type: 'string', example: 'Rutina específica para los objetivos de Juan' },
             totalWeeks: { type: 'number', example: 4 },
             trainer_id: { type: 'string', example: 'uuid-entrenador' },
+            suggestedStartDate: { type: 'string', example: '2024-01-15T00:00:00.000Z', nullable: true },
+            suggestedEndDate: { type: 'string', example: '2024-03-15T00:00:00.000Z', nullable: true },
             isActive: { type: 'boolean', example: true },
             createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
           }
@@ -340,9 +344,52 @@ export class RoutinesController {
           name: { type: 'string', example: 'Rutina de Fuerza' },
           description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
           comments: { type: 'string', example: 'Realizar 3 veces por semana' },
+          totalWeeks: { type: 'number', example: 4 },
           isActive: { type: 'boolean', example: true },
+          trainer_id: { type: 'string', example: 'uuid-del-entrenador' },
+          suggestedStartDate: { type: 'string', example: '2024-01-15T00:00:00.000Z', nullable: true },
+          suggestedEndDate: { type: 'string', example: '2024-03-15T00:00:00.000Z', nullable: true },
+          isAssigned: { type: 'boolean', example: true, description: 'Indica si la rutina está asignada a algún usuario' },
+          assignmentCount: { type: 'number', example: 2, description: 'Número de usuarios que tienen esta rutina asignada' },
           createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
-          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+          updatedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+          weeks: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                weekNumber: { type: 'number', example: 1 },
+                name: { type: 'string', example: 'Semana 1 - Adaptación' },
+                comments: { type: 'string', example: 'Enfoque en técnica' },
+                days: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      dayNumber: { type: 'number', example: 1 },
+                      name: { type: 'string', example: 'Día 1 - Pecho y Tríceps' },
+                      comments: { type: 'string', example: 'Ejercicios básicos' },
+                      exercises: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            name: { type: 'string', example: 'Press de Banca' },
+                            sets: { type: 'number', example: 3 },
+                            repetitions: { type: 'number', example: 10 },
+                            restBetweenSets: { type: 'number', example: 90 },
+                            restBetweenExercises: { type: 'number', example: 120 },
+                            comments: { type: 'string', example: 'Mantener buena forma' },
+                            order: { type: 'number', example: 1 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
