@@ -99,7 +99,74 @@ export class UsersController {
         trainerId: { type: 'string', example: 'uuid-entrenador', nullable: true },
         hasRoutine: { type: 'boolean', example: true },
         isActive: { type: 'boolean', example: true },
-        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' }
+        createdAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+        routine: {
+          type: 'object',
+          nullable: true,
+          description: 'Información de la rutina asignada (solo si hasRoutine es true)',
+          properties: {
+            id: { type: 'string', example: 'uuid-de-user-routine' },
+            routine_id: { type: 'string', example: 'uuid-de-rutina' },
+            startDate: { type: 'string', example: '2024-01-15T00:00:00.000Z' },
+            endDate: { type: 'string', example: '2024-02-15T00:00:00.000Z', nullable: true },
+            notes: { type: 'string', example: 'Rutina asignada por el entrenador', nullable: true },
+            isActive: { type: 'boolean', example: true },
+            assignedAt: { type: 'string', example: '2024-01-15T10:00:00.000Z' },
+            routine: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', example: 'uuid-de-rutina' },
+                name: { type: 'string', example: 'Rutina de Fuerza' },
+                description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
+                comments: { type: 'string', example: 'Realizar 3 veces por semana' },
+                totalWeeks: { type: 'number', example: 4 },
+                isActive: { type: 'boolean', example: true },
+                trainer_id: { type: 'string', example: 'uuid-entrenador' },
+                weeks: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', example: 'uuid-semana' },
+                      weekNumber: { type: 'number', example: 1 },
+                      name: { type: 'string', example: 'Semana 1 - Adaptación' },
+                      comments: { type: 'string', example: 'Enfoque en técnica' },
+                      days: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', example: 'uuid-dia' },
+                            dayNumber: { type: 'number', example: 1 },
+                            name: { type: 'string', example: 'Día 1 - Pecho y Tríceps' },
+                            comments: { type: 'string', example: 'Ejercicios básicos' },
+                            exercises: {
+                              type: 'array',
+                              items: {
+                                type: 'object',
+                                properties: {
+                                  id: { type: 'string', example: 'uuid-ejercicio' },
+                                  name: { type: 'string', example: 'Press de Banca' },
+                                  exerciseId: { type: 'string', example: 'uuid-ejercicio-catalogo', nullable: true },
+                                  sets: { type: 'number', example: 3 },
+                                  repetitions: { type: 'number', example: 10 },
+                                  restBetweenSets: { type: 'number', example: 90 },
+                                  restBetweenExercises: { type: 'number', example: 120 },
+                                  comments: { type: 'string', example: 'Mantener buena forma' },
+                                  order: { type: 'number', example: 1 }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
   })

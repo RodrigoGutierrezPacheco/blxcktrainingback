@@ -273,7 +273,7 @@ export class RoutinesService {
     
     await this.findOne(assignRoutineDto.routine_id);
 
-    // Verificar que no haya una asignación activa
+    // Verificar que no haya una asignación activa para esta rutina específica
     const existingAssignment = await this.userRoutineRepository.findOne({
       where: {
         user_id: assignRoutineDto.user_id,
@@ -286,6 +286,26 @@ export class RoutinesService {
       throw new BadRequestException('User already has an active assignment for this routine');
     }
 
+    // Buscar TODAS las rutinas del usuario (activas e inactivas)
+    const allUserRoutines = await this.userRoutineRepository.find({
+      where: {
+        user_id: assignRoutineDto.user_id,
+      },
+    });
+
+    // Eliminar completamente TODAS las rutinas anteriores del usuario
+    if (allUserRoutines.length > 0) {
+      console.log(`🗑️ Eliminando ${allUserRoutines.length} rutinas del usuario ${assignRoutineDto.user_id}`);
+      
+      // Eliminar todas las rutinas anteriores
+      await this.userRoutineRepository.delete({
+        user_id: assignRoutineDto.user_id,
+      });
+      
+      console.log(`✅ ${allUserRoutines.length} rutinas eliminadas exitosamente`);
+    }
+
+    // Crear la nueva asignación
     const userRoutine = this.userRoutineRepository.create({
       user_id: assignRoutineDto.user_id,
       routine_id: assignRoutineDto.routine_id,
@@ -353,6 +373,79 @@ export class RoutinesService {
     if (activeRoutines === 0) {
       await this.usersService.updateUserRoutineStatus(userId, false);
     }
+  }
+
+  async deactivateAllUserRoutinesByEmail(email: string): Promise<{ message: string; deactivatedRoutines: number }> {
+    // Buscar el usuario por email
+    const user = await this.usersService.getUserByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Buscar todas las rutinas activas del usuario
+    const activeRoutines = await this.userRoutineRepository.find({
+      where: {
+        user_id: user.id,
+        isActive: true,
+      },
+    });
+
+    if (activeRoutines.length === 0) {
+      return {
+        message: 'El usuario no tiene rutinas activas para desasignar',
+        deactivatedRoutines: 0
+      };
+    }
+
+    // Desactivar todas las rutinas activas
+    for (const userRoutine of activeRoutines) {
+      userRoutine.isActive = false;
+      userRoutine.endDate = new Date();
+      await this.userRoutineRepository.save(userRoutine);
+    }
+
+    // Actualizar hasRoutine a false ya que no tiene rutinas activas
+    await this.usersService.updateUserRoutineStatus(user.id, false);
+
+    return {
+      message: `Se desasignaron ${activeRoutines.length} rutina(s) del usuario exitosamente`,
+      deactivatedRoutines: activeRoutines.length
+    };
+  }
+
+  async deleteAllUserRoutinesByEmail(email: string): Promise<{ message: string; deletedRoutines: number }> {
+    // Buscar el usuario por email
+    const user = await this.usersService.getUserByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Buscar todas las rutinas del usuario (activas e inactivas)
+    const allUserRoutines = await this.userRoutineRepository.find({
+      where: {
+        user_id: user.id,
+      },
+    });
+
+    if (allUserRoutines.length === 0) {
+      return {
+        message: 'El usuario no tiene rutinas para eliminar',
+        deletedRoutines: 0
+      };
+    }
+
+    // Eliminar completamente todas las rutinas del usuario
+    await this.userRoutineRepository.delete({
+      user_id: user.id,
+    });
+
+    // Actualizar hasRoutine a false ya que no tiene rutinas
+    await this.usersService.updateUserRoutineStatus(user.id, false);
+
+    return {
+      message: `Se eliminaron ${allUserRoutines.length} rutina(s) del usuario exitosamente`,
+      deletedRoutines: allUserRoutines.length
+    };
   }
 
   async removeUserRoutine(userId: string, routineId: string): Promise<void> {

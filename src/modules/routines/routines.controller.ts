@@ -18,6 +18,11 @@ import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { ReassignRoutineDto } from './dto/reassign-routine.dto';
 import { CreateRoutineForUserDto } from './dto/create-routine-for-user.dto';
 import { UpdateRoutineDurationDto } from './dto/update-routine-duration.dto';
+import { MarkExerciseCompletedDto } from './dto/mark-exercise-completed.dto';
+import { MarkDayCompletedDto } from './dto/mark-day-completed.dto';
+import { MarkWeekCompletedDto } from './dto/mark-week-completed.dto';
+import { MarkRoutineCompletedDto } from './dto/mark-routine-completed.dto';
+import { ProgressService } from './services/progress.service';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 import { Public } from '../../auth/decorators/public.decorator';
 
@@ -26,7 +31,10 @@ import { Public } from '../../auth/decorators/public.decorator';
 @Controller('routines')
 @UseGuards(JwtGuard)
 export class RoutinesController {
-  constructor(private readonly routinesService: RoutinesService) {}
+  constructor(
+    private readonly routinesService: RoutinesService,
+    private readonly progressService: ProgressService
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -708,7 +716,7 @@ export class RoutinesController {
   @Post('assign')
   @ApiOperation({
     summary: 'Asignar Rutina a Usuario',
-    description: 'Asigna una rutina específica a un usuario, creando la relación entre ambos.'
+    description: 'Asigna una rutina específica a un usuario, creando la relación entre ambos. Si el usuario ya tiene rutinas asignadas (activas o inactivas), se eliminan completamente todas las rutinas anteriores para que puedan ser reasignadas a otros usuarios. Solo se mantiene la nueva asignación.'
   })
   @ApiBody({
     type: AssignRoutineDto,
@@ -923,6 +931,106 @@ export class RoutinesController {
     @Param('routineId') routineId: string,
   ) {
     return this.routinesService.removeUserRoutine(userId, routineId);
+  }
+
+  @Delete('user/email/:email')
+  @ApiOperation({
+    summary: 'Desasignar Todas las Rutinas de un Usuario',
+    description: 'Desasigna todas las rutinas activas de un usuario específico por su email. Marca todas las rutinas como inactivas y actualiza el estado hasRoutine del usuario a false.'
+  })
+  @ApiParam({
+    name: 'email',
+    description: 'Email del usuario al que se le desasignarán todas las rutinas',
+    example: 'laura@gmail.com',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutinas desasignadas exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Se desasignaron 2 rutina(s) del usuario exitosamente',
+          description: 'Mensaje de confirmación con el número de rutinas desasignadas'
+        },
+        deactivatedRoutines: {
+          type: 'number',
+          example: 2,
+          description: 'Número de rutinas que fueron desasignadas'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado - Token JWT requerido'
+  })
+  deactivateAllUserRoutinesByEmail(@Param('email') email: string) {
+    return this.routinesService.deactivateAllUserRoutinesByEmail(email);
+  }
+
+  @Delete('user/email/:email/delete-all')
+  @ApiOperation({
+    summary: 'ELIMINAR TODAS las Rutinas de un Usuario',
+    description: 'ELIMINA COMPLETAMENTE todas las rutinas de un usuario específico por su email. Esto es para casos especiales donde se necesita limpiar completamente las rutinas de un usuario.'
+  })
+  @ApiParam({
+    name: 'email',
+    description: 'Email del usuario al que se le eliminarán TODAS las rutinas',
+    example: 'laura@gmail.com',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutinas eliminadas exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Se eliminaron 8 rutina(s) del usuario exitosamente',
+          description: 'Mensaje de confirmación con el número de rutinas eliminadas'
+        },
+        deletedRoutines: {
+          type: 'number',
+          example: 8,
+          description: 'Número de rutinas que fueron eliminadas'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Usuario no encontrado',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'No autorizado - Token JWT requerido'
+  })
+  deleteAllUserRoutinesByEmail(@Param('email') email: string) {
+    return this.routinesService.deleteAllUserRoutinesByEmail(email);
   }
 
   @Post('sync-users-routine-status')
@@ -1189,5 +1297,292 @@ export class RoutinesController {
         totalWeeks: result.routine.totalWeeks
       }
     };
+  }
+
+  // Endpoints para seguimiento de progreso
+
+  @Patch('progress/exercise')
+  @ApiOperation({
+    summary: 'Marcar Ejercicio como Completado',
+    description: 'Permite al usuario marcar un ejercicio específico como completado o no completado. Solo el usuario puede marcar su propio progreso.'
+  })
+  @ApiBody({
+    type: MarkExerciseCompletedDto,
+    description: 'Datos para marcar el ejercicio como completado',
+    examples: {
+      ejercicioCompletado: {
+        summary: 'Marcar Ejercicio como Completado',
+        value: {
+          exerciseId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true,
+          progressData: {
+            setsCompleted: 3,
+            weightUsed: 80,
+            notes: 'Muy buen ejercicio, pude aumentar el peso'
+          }
+        }
+      },
+      ejercicioNoCompletado: {
+        summary: 'Marcar Ejercicio como No Completado',
+        value: {
+          exerciseId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: false
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicio marcado como completado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        exercise_id: { type: 'string', example: 'uuid-del-ejercicio' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        progressData: { type: 'object', example: { setsCompleted: 3, weightUsed: 80 } },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Ejercicio no encontrado' })
+  async markExerciseCompleted(
+    @Body() markDto: MarkExerciseCompletedDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markExerciseCompleted(userId, markDto);
+  }
+
+  @Patch('progress/day')
+  @ApiOperation({
+    summary: 'Marcar Día como Completado',
+    description: 'Permite al usuario marcar un día específico como completado o no completado. Solo el usuario puede marcar su propio progreso.'
+  })
+  @ApiBody({
+    type: MarkDayCompletedDto,
+    description: 'Datos para marcar el día como completado',
+    examples: {
+      diaCompletado: {
+        summary: 'Marcar Día como Completado',
+        value: {
+          dayId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true,
+          notes: 'Excelente entrenamiento, me sentí muy fuerte hoy',
+          durationMinutes: 45
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Día marcado como completado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        day_id: { type: 'string', example: 'uuid-del-dia' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        notes: { type: 'string', example: 'Excelente entrenamiento' },
+        durationMinutes: { type: 'number', example: 45 },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Día no encontrado' })
+  async markDayCompleted(
+    @Body() markDto: MarkDayCompletedDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markDayCompleted(userId, markDto);
+  }
+
+  @Patch('progress/week')
+  @ApiOperation({
+    summary: 'Marcar Semana como Completada',
+    description: 'Permite al usuario marcar una semana específica como completada o no completada. Solo el usuario puede marcar su propio progreso.'
+  })
+  @ApiBody({
+    type: MarkWeekCompletedDto,
+    description: 'Datos para marcar la semana como completada',
+    examples: {
+      semanaCompletada: {
+        summary: 'Marcar Semana como Completada',
+        value: {
+          weekId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true,
+          notes: 'Semana muy productiva, logré todos mis objetivos',
+          totalMinutes: 180
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Semana marcada como completada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        week_id: { type: 'string', example: 'uuid-de-la-semana' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        notes: { type: 'string', example: 'Semana muy productiva' },
+        completedDays: { type: 'number', example: 3 },
+        totalMinutes: { type: 'number', example: 180 },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Semana no encontrada' })
+  async markWeekCompleted(
+    @Body() markDto: MarkWeekCompletedDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markWeekCompleted(userId, markDto);
+  }
+
+  @Patch('progress/routine')
+  @ApiOperation({
+    summary: 'Marcar Rutina como Completada',
+    description: 'Permite al usuario marcar una rutina específica como completada o no completada. Solo el usuario puede marcar su propio progreso.'
+  })
+  @ApiBody({
+    type: MarkRoutineCompletedDto,
+    description: 'Datos para marcar la rutina como completada',
+    examples: {
+      rutinaCompletada: {
+        summary: 'Marcar Rutina como Completada',
+        value: {
+          routineId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true,
+          notes: '¡Rutina completada con éxito! Me siento mucho más fuerte y saludable',
+          totalMinutes: 720
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rutina marcada como completada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        routine_id: { type: 'string', example: 'uuid-de-la-rutina' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        notes: { type: 'string', example: '¡Rutina completada con éxito!' },
+        completedWeeks: { type: 'number', example: 4 },
+        completedDays: { type: 'number', example: 12 },
+        completedExercises: { type: 'number', example: 36 },
+        totalMinutes: { type: 'number', example: 720 },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Rutina no encontrada' })
+  async markRoutineCompleted(
+    @Body() markDto: MarkRoutineCompletedDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markRoutineCompleted(userId, markDto);
+  }
+
+  @Get('progress/:routineId')
+  @ApiOperation({
+    summary: 'Obtener Progreso del Usuario en una Rutina',
+    description: 'Obtiene el progreso completo del usuario en una rutina específica, incluyendo el estado de ejercicios, días, semanas y la rutina completa.'
+  })
+  @ApiParam({
+    name: 'routineId',
+    description: 'ID de la rutina',
+    example: 'uuid-de-la-rutina',
+    required: true
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Progreso del usuario obtenido exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        routine: {
+          type: 'object',
+          nullable: true,
+          description: 'Progreso de la rutina completa'
+        },
+        weeks: {
+          type: 'array',
+          description: 'Progreso de las semanas',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-de-progreso' },
+              user_id: { type: 'string', example: 'uuid-del-usuario' },
+              week_id: { type: 'string', example: 'uuid-de-la-semana' },
+              isCompleted: { type: 'boolean', example: true },
+              completedDays: { type: 'number', example: 3 },
+              completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+            }
+          }
+        },
+        days: {
+          type: 'array',
+          description: 'Progreso de los días',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-de-progreso' },
+              user_id: { type: 'string', example: 'uuid-del-usuario' },
+              day_id: { type: 'string', example: 'uuid-del-dia' },
+              isCompleted: { type: 'boolean', example: true },
+              durationMinutes: { type: 'number', example: 45 },
+              completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+            }
+          }
+        },
+        exercises: {
+          type: 'array',
+          description: 'Progreso de los ejercicios',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', example: 'uuid-de-progreso' },
+              user_id: { type: 'string', example: 'uuid-del-usuario' },
+              exercise_id: { type: 'string', example: 'uuid-del-ejercicio' },
+              isCompleted: { type: 'boolean', example: true },
+              progressData: { type: 'object', example: { setsCompleted: 3, weightUsed: 80 } },
+              completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+            }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'No tienes esta rutina asignada' })
+  @ApiResponse({ status: 404, description: 'Rutina no encontrada' })
+  async getUserProgress(
+    @Param('routineId') routineId: string,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.getUserProgress(userId, routineId);
   }
 }

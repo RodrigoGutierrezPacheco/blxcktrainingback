@@ -139,16 +139,46 @@ export class UsersService {
     return result as User;
   }
 
-  async getUserByEmail(email: string): Promise<User> {
+  async getUserByEmail(email: string): Promise<Omit<User, 'password'> & { routine?: any }> {
     const user = await this.userRepository.findOne({ where: { email } });
     
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
 
+    // Buscar la rutina activa del usuario si tiene una asignada
+    let userRoutine: UserRoutine | null = null;
+    if (user.hasRoutine) {
+      userRoutine = await this.userRoutineRepository.findOne({
+        where: {
+          user_id: user.id,
+          isActive: true
+        },
+        relations: ['routine', 'routine.weeks', 'routine.weeks.days', 'routine.weeks.days.exercises']
+      });
+    }
+
     // Retornar el usuario sin la contraseña por seguridad
     const { password, ...result } = user;
-    return result as User;
+    
+    // Agregar información de la rutina si existe
+    if (userRoutine) {
+      return {
+        ...result,
+        routine: {
+          id: userRoutine.id,
+          routine_id: userRoutine.routine_id,
+          startDate: userRoutine.startDate,
+          endDate: userRoutine.endDate,
+          notes: userRoutine.notes,
+          isActive: userRoutine.isActive,
+          assignedAt: userRoutine.createdAt,
+          routine: userRoutine.routine
+        }
+      };
+    }
+
+    return result as Omit<User, 'password'>;
   }
 
   async assignTrainerToUser(assignDto: AssignTrainerDto): Promise<UserTrainer> {
