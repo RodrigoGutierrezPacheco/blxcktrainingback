@@ -96,7 +96,12 @@ export class UsersService {
     }
 
     if (updateDto.dateOfBirth) {
-      updateData.dateOfBirth = new Date(updateDto.dateOfBirth);
+      // Crear la fecha como fecha local para evitar problemas de zona horaria
+      const dateParts = updateDto.dateOfBirth.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Los meses en JavaScript van de 0-11
+      const day = parseInt(dateParts[2]);
+      updateData.dateOfBirth = new Date(year, month, day);
     }
 
     if (updateDto.healthIssues !== undefined) {
@@ -768,7 +773,12 @@ export class UsersService {
     }
 
     if (updateDto.dateOfBirth) {
-      updateData.dateOfBirth = new Date(updateDto.dateOfBirth);
+      // Crear la fecha como fecha local para evitar problemas de zona horaria
+      const dateParts = updateDto.dateOfBirth.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Los meses en JavaScript van de 0-11
+      const day = parseInt(dateParts[2]);
+      updateData.dateOfBirth = new Date(year, month, day);
     }
 
     // Aplicar las actualizaciones
