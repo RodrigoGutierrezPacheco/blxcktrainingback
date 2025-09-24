@@ -11,6 +11,7 @@ import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { ReassignRoutineDto } from './dto/reassign-routine.dto';
 import { CreateRoutineForUserDto } from './dto/create-routine-for-user.dto';
+import { UpdateRoutineDurationDto } from './dto/update-routine-duration.dto';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 
@@ -556,6 +557,51 @@ export class RoutinesService {
     return {
       routine: completeRoutine,
       userRoutine: savedUserRoutine
+    };
+  }
+
+  async updateRoutineDuration(updateDurationDto: UpdateRoutineDurationDto): Promise<{ userRoutine: UserRoutine; routine: Routine }> {
+    // Verificar que el usuario existe
+    const user = await this.usersService.findUserById(updateDurationDto.userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    // Buscar la rutina activa del usuario
+    const userRoutine = await this.userRoutineRepository.findOne({
+      where: {
+        user_id: updateDurationDto.userId,
+        isActive: true
+      },
+      relations: ['routine']
+    });
+
+    if (!userRoutine) {
+      throw new NotFoundException('Usuario no encontrado o no tiene rutina activa');
+    }
+
+    // Validar que la fecha de fin no sea anterior a la fecha de inicio
+    if (updateDurationDto.endDate && new Date(updateDurationDto.endDate) <= new Date(updateDurationDto.startDate)) {
+      throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio');
+    }
+
+    // Actualizar las fechas de la rutina del usuario
+    userRoutine.startDate = new Date(updateDurationDto.startDate);
+    userRoutine.endDate = updateDurationDto.endDate ? new Date(updateDurationDto.endDate) : null;
+    
+    // Actualizar las notas si se proporcionan
+    if (updateDurationDto.notes) {
+      userRoutine.notes = updateDurationDto.notes;
+    }
+
+    const updatedUserRoutine = await this.userRoutineRepository.save(userRoutine);
+
+    // Obtener la rutina completa
+    const routine = await this.findOne(userRoutine.routine_id);
+
+    return {
+      userRoutine: updatedUserRoutine,
+      routine: routine
     };
   }
 }

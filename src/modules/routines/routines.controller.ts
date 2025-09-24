@@ -17,6 +17,7 @@ import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
 import { ReassignRoutineDto } from './dto/reassign-routine.dto';
 import { CreateRoutineForUserDto } from './dto/create-routine-for-user.dto';
+import { UpdateRoutineDurationDto } from './dto/update-routine-duration.dto';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 import { Public } from '../../auth/decorators/public.decorator';
 
@@ -1069,5 +1070,124 @@ export class RoutinesController {
   })
   getUsersWithRoutine() {
     return this.routinesService.getUsersWithRoutine();
+  }
+
+  @Patch('user/update-duration')
+  @ApiOperation({
+    summary: 'Cambiar Duración de Rutina Asignada a Usuario',
+    description: 'Actualiza las fechas de inicio y fin de una rutina asignada a un usuario específico. Permite modificar la duración de la rutina sin cambiar la rutina en sí.'
+  })
+  @ApiBody({
+    type: UpdateRoutineDurationDto,
+    description: 'Datos para cambiar la duración de la rutina del usuario',
+    examples: {
+      cambioDuracion1: {
+        summary: 'Cambio de Duración de Rutina',
+        value: {
+          userId: '123e4567-e89b-12d3-a456-426614174000',
+          startDate: '2024-01-20',
+          endDate: '2024-03-20',
+          notes: 'Rutina extendida por 2 semanas debido al buen progreso del usuario'
+        }
+      },
+      cambioDuracion2: {
+        summary: 'Solo Cambio de Fecha de Fin',
+        value: {
+          userId: '123e4567-e89b-12d3-a456-426614174000',
+          startDate: '2024-01-15',
+          endDate: '2024-02-28',
+          notes: 'Rutina acortada por cambio en objetivos'
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Duración de rutina actualizada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          example: 'Duración de rutina actualizada exitosamente',
+          description: 'Mensaje de confirmación de actualización'
+        },
+        userRoutine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-de-user-routine' },
+            user_id: { type: 'string', example: '123e4567-e89b-12d3-a456-426614174000' },
+            routine_id: { type: 'string', example: 'uuid-de-rutina' },
+            startDate: { type: 'string', example: '2024-01-20T00:00:00.000Z' },
+            endDate: { type: 'string', example: '2024-03-20T00:00:00.000Z' },
+            notes: { type: 'string', example: 'Rutina extendida por 2 semanas debido al buen progreso del usuario' },
+            isActive: { type: 'boolean', example: true },
+            updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+          },
+          description: 'Información actualizada de la rutina del usuario'
+        },
+        routine: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: 'uuid-de-rutina' },
+            name: { type: 'string', example: 'Rutina de Fuerza' },
+            description: { type: 'string', example: 'Rutina para desarrollar fuerza muscular' },
+            totalWeeks: { type: 'number', example: 4 }
+          },
+          description: 'Información de la rutina asignada'
+        }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Datos de entrada inválidos',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'array', items: { type: 'string' }, example: ['userId debe ser un UUID válido'] },
+        error: { type: 'string', example: 'Bad Request' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Usuario no encontrado o sin rutina activa',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 404 },
+        message: { type: 'string', example: 'Usuario no encontrado o no tiene rutina activa' },
+        error: { type: 'string', example: 'Not Found' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'No autorizado - Token JWT requerido' 
+  })
+  async updateRoutineDuration(@Body() updateDurationDto: UpdateRoutineDurationDto) {
+    const result = await this.routinesService.updateRoutineDuration(updateDurationDto);
+    
+    return {
+      message: 'Duración de rutina actualizada exitosamente',
+      userRoutine: {
+        id: result.userRoutine.id,
+        user_id: result.userRoutine.user_id,
+        routine_id: result.userRoutine.routine_id,
+        startDate: result.userRoutine.startDate,
+        endDate: result.userRoutine.endDate,
+        notes: result.userRoutine.notes,
+        isActive: result.userRoutine.isActive,
+        updatedAt: result.userRoutine.updatedAt
+      },
+      routine: {
+        id: result.routine.id,
+        name: result.routine.name,
+        description: result.routine.description,
+        totalWeeks: result.routine.totalWeeks
+      }
+    };
   }
 }
