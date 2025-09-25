@@ -18,6 +18,26 @@ import { UpdateRoutineDurationDto } from './dto/update-routine-duration.dto';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 
+// Interfaces para extender las entidades con información de progreso
+interface WeekWithProgress extends Week {
+  isCompleted?: boolean;
+  completedAt?: Date | null;
+}
+
+interface DayWithProgress extends Day {
+  isCompleted?: boolean;
+  completedAt?: Date | null;
+}
+
+interface ExerciseWithProgress extends Exercise {
+  isCompleted?: boolean;
+  completedAt?: Date | null;
+}
+
+interface RoutineIdResult {
+  routine_id: string;
+}
+
 @Injectable()
 export class RoutinesService {
   constructor(
@@ -197,7 +217,7 @@ export class RoutinesService {
       .where('userRoutine.isActive = :isActive', { isActive: true })
       .getRawMany();
 
-    const assignedIds = assignedRoutineIds.map(item => item.routine_id);
+    const assignedIds = assignedRoutineIds.map((item: RoutineIdResult) => item.routine_id);
 
     // Filtrar las rutinas que NO están asignadas
     const unassignedRoutines = allRoutines.filter(routine => 
@@ -385,8 +405,8 @@ export class RoutinesService {
           const weekProgress = await this.weekProgressRepository.findOne({
             where: { user_id: user.id, week_id: week.id }
           });
-          (week as any).isCompleted = weekProgress?.isCompleted || false;
-          (week as any).completedAt = weekProgress?.completedAt || null;
+          (week as WeekWithProgress).isCompleted = weekProgress?.isCompleted || false;
+          (week as WeekWithProgress).completedAt = weekProgress?.completedAt || null;
 
           // Agregar progreso de días
           if (week.days) {
@@ -394,8 +414,8 @@ export class RoutinesService {
               const dayProgress = await this.dayProgressRepository.findOne({
                 where: { user_id: user.id, day_id: day.id }
               });
-              (day as any).isCompleted = dayProgress?.isCompleted || false;
-              (day as any).completedAt = dayProgress?.completedAt || null;
+              (day as DayWithProgress).isCompleted = dayProgress?.isCompleted || false;
+              (day as DayWithProgress).completedAt = dayProgress?.completedAt || null;
 
               // Agregar progreso de ejercicios
               if (day.exercises) {
@@ -403,8 +423,8 @@ export class RoutinesService {
                   const exerciseProgress = await this.exerciseProgressRepository.findOne({
                     where: { user_id: user.id, exercise_id: exercise.id }
                   });
-                  (exercise as any).isCompleted = exerciseProgress?.isCompleted || false;
-                  (exercise as any).completedAt = exerciseProgress?.completedAt || null;
+                  (exercise as ExerciseWithProgress).isCompleted = exerciseProgress?.isCompleted || false;
+                  (exercise as ExerciseWithProgress).completedAt = exerciseProgress?.completedAt || null;
                 }
               }
             }
