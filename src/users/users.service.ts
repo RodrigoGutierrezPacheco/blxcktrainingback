@@ -15,6 +15,9 @@ import * as bcrypt from 'bcrypt';
 import { Admin } from './entities/admin.entity';
 import { TrainerVerificationDocument } from '../modules/trainers/entities/trainer-verification-document.entity';
 import { UserRoutine } from '../modules/routines/entities/user-routine.entity';
+import { Routine } from '../modules/routines/entities/routine.entity';
+import { Week } from '../modules/routines/entities/week.entity';
+import { Day } from '../modules/routines/entities/day.entity';
 
 @Injectable()
 export class UsersService {
@@ -136,10 +139,38 @@ export class UsersService {
     
     // Retornar el usuario sin la contraseña
     const { password, ...result } = updatedUser;
+    void password; // Marcar como usado para evitar warning
     return result as User;
   }
 
-  async getUserByEmail(email: string): Promise<Omit<User, 'password'> & { routine?: any }> {
+  /**
+   * Ordena las semanas y días de una rutina
+   * @param routine Rutina a ordenar
+   */
+  private sortRoutineWeeks(routine: Routine | null | undefined): void {
+    if (routine && routine.weeks) {
+      // Ordenar las semanas por weekNumber (de 1 a la última)
+      routine.weeks.sort((a: Week, b: Week) => a.weekNumber - b.weekNumber);
+      
+      // Ordenar los días dentro de cada semana por dayNumber
+      routine.weeks.forEach((week: Week) => {
+        if (week.days) {
+          week.days.sort((a: Day, b: Day) => a.dayNumber - b.dayNumber);
+        }
+      });
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<Omit<User, 'password'> & { routine?: {
+    id: string;
+    routine_id: string;
+    startDate: Date;
+    endDate: Date | null;
+    notes: string;
+    isActive: boolean;
+    assignedAt: Date;
+    routine: Routine;
+  } }> {
     const user = await this.userRepository.findOne({ where: { email } });
     
     if (!user) {
@@ -160,9 +191,13 @@ export class UsersService {
 
     // Retornar el usuario sin la contraseña por seguridad
     const { password, ...result } = user;
+    void password; // Marcar como usado para evitar warning
     
     // Agregar información de la rutina si existe
     if (userRoutine) {
+      // Ordenar las semanas y días
+      this.sortRoutineWeeks(userRoutine.routine);
+
       return {
         ...result,
         routine: {
@@ -481,6 +516,7 @@ export class UsersService {
     console.log(trainer)
     // Retornar el entrenador sin la contraseña por seguridad
     const { password, ...trainerInfo } = trainer;
+    void password; // Marcar como usado para evitar warning
     return trainerInfo;
   }
 
@@ -818,6 +854,7 @@ export class UsersService {
     
     // Retornar el entrenador sin la contraseña
     const { password, ...result } = updatedTrainer;
+    void password; // Marcar como usado para evitar warning
     return result;
   }
 

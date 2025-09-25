@@ -12,6 +12,10 @@ import { Week } from "src/modules/routines/entities/week.entity";
 import { Day } from "src/modules/routines/entities/day.entity";
 import { Exercise as RoutineExercise } from "src/modules/routines/entities/exercise.entity";
 import { UserRoutine } from "src/modules/routines/entities/user-routine.entity";
+import { UserExerciseProgress } from "src/modules/routines/entities/user-exercise-progress.entity";
+import { UserDayProgress } from "src/modules/routines/entities/user-day-progress.entity";
+import { UserWeekProgress } from "src/modules/routines/entities/user-week-progress.entity";
+import { UserRoutineProgress } from "src/modules/routines/entities/user-routine-progress.entity";
 import { Plan } from "src/modules/plans/entities/plan.entity";
 import { MuscleGroup } from "src/modules/muscle-groups/entities/muscle-group.entity";
 import { Exercise } from "src/modules/exercises/entities/exercise.entity";
@@ -43,6 +47,10 @@ import { MediaAsset } from "src/modules/media-assets/entities/media-asset.entity
           Day,
           RoutineExercise,
           UserRoutine,
+          UserExerciseProgress,
+          UserDayProgress,
+          UserWeekProgress,
+          UserRoutineProgress,
           Plan,
           MuscleGroup,
           Exercise,

@@ -6,6 +6,9 @@ import { Week } from './entities/week.entity';
 import { Day } from './entities/day.entity';
 import { Exercise } from './entities/exercise.entity';
 import { UserRoutine } from './entities/user-routine.entity';
+import { UserExerciseProgress } from './entities/user-exercise-progress.entity';
+import { UserDayProgress } from './entities/user-day-progress.entity';
+import { UserWeekProgress } from './entities/user-week-progress.entity';
 import { CreateRoutineDto } from './dto/create-routine.dto';
 import { UpdateRoutineDto } from './dto/update-routine.dto';
 import { AssignRoutineDto } from './dto/assign-routine.dto';
@@ -28,6 +31,12 @@ export class RoutinesService {
     private exerciseRepository: Repository<Exercise>,
     @InjectRepository(UserRoutine)
     private userRoutineRepository: Repository<UserRoutine>,
+    @InjectRepository(UserExerciseProgress)
+    private exerciseProgressRepository: Repository<UserExerciseProgress>,
+    @InjectRepository(UserDayProgress)
+    private dayProgressRepository: Repository<UserDayProgress>,
+    @InjectRepository(UserWeekProgress)
+    private weekProgressRepository: Repository<UserWeekProgress>,
     private usersService: UsersService,
   ) {}
 
@@ -323,11 +332,36 @@ export class RoutinesService {
     return savedUserRoutine;
   }
 
+  /**
+   * Ordena las semanas y días de las rutinas del usuario
+   * @param userRoutines Array de rutinas del usuario
+   */
+  private sortUserRoutines(userRoutines: UserRoutine[]): void {
+    userRoutines.forEach(userRoutine => {
+      if (userRoutine.routine && userRoutine.routine.weeks) {
+        // Ordenar las semanas por weekNumber (de 1 a la última)
+        userRoutine.routine.weeks.sort((a, b) => a.weekNumber - b.weekNumber);
+        
+        // Ordenar los días dentro de cada semana por dayNumber
+        userRoutine.routine.weeks.forEach(week => {
+          if (week.days) {
+            week.days.sort((a, b) => a.dayNumber - b.dayNumber);
+          }
+        });
+      }
+    });
+  }
+
   async getUserRoutines(userId: string): Promise<UserRoutine[]> {
-    return this.userRoutineRepository.find({
+    const userRoutines = await this.userRoutineRepository.find({
       where: { user_id: userId },
       relations: ['routine', 'routine.weeks', 'routine.weeks.days', 'routine.weeks.days.exercises'],
     });
+
+    // Ordenar las semanas y días
+    this.sortUserRoutines(userRoutines);
+
+    return userRoutines;
   }
 
   async getUserRoutinesByEmail(email: string): Promise<UserRoutine[]> {
@@ -338,10 +372,51 @@ export class RoutinesService {
     }
 
     // Luego buscar las rutinas del usuario usando el ID del usuario (que es UUID)
-    return this.userRoutineRepository.find({
+    const userRoutines = await this.userRoutineRepository.find({
       where: { user_id: user.id },
       relations: ['routine', 'routine.weeks', 'routine.weeks.days', 'routine.weeks.days.exercises'],
     });
+
+    // Agregar información de progreso a cada rutina
+    for (const userRoutine of userRoutines) {
+      if (userRoutine.routine && userRoutine.routine.weeks) {
+        // Agregar progreso de semanas
+        for (const week of userRoutine.routine.weeks) {
+          const weekProgress = await this.weekProgressRepository.findOne({
+            where: { user_id: user.id, week_id: week.id }
+          });
+          (week as any).isCompleted = weekProgress?.isCompleted || false;
+          (week as any).completedAt = weekProgress?.completedAt || null;
+
+          // Agregar progreso de días
+          if (week.days) {
+            for (const day of week.days) {
+              const dayProgress = await this.dayProgressRepository.findOne({
+                where: { user_id: user.id, day_id: day.id }
+              });
+              (day as any).isCompleted = dayProgress?.isCompleted || false;
+              (day as any).completedAt = dayProgress?.completedAt || null;
+
+              // Agregar progreso de ejercicios
+              if (day.exercises) {
+                for (const exercise of day.exercises) {
+                  const exerciseProgress = await this.exerciseProgressRepository.findOne({
+                    where: { user_id: user.id, exercise_id: exercise.id }
+                  });
+                  (exercise as any).isCompleted = exerciseProgress?.isCompleted || false;
+                  (exercise as any).completedAt = exerciseProgress?.completedAt || null;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Ordenar las semanas y días
+    this.sortUserRoutines(userRoutines);
+
+    return userRoutines;
   }
 
   async deactivateUserRoutine(userId: string, routineId: string): Promise<void> {

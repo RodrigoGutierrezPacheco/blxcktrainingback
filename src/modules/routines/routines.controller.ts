@@ -22,6 +22,9 @@ import { MarkExerciseCompletedDto } from './dto/mark-exercise-completed.dto';
 import { MarkDayCompletedDto } from './dto/mark-day-completed.dto';
 import { MarkWeekCompletedDto } from './dto/mark-week-completed.dto';
 import { MarkRoutineCompletedDto } from './dto/mark-routine-completed.dto';
+import { MarkExerciseSimpleDto } from './dto/mark-exercise-simple.dto';
+import { MarkDaySimpleDto } from './dto/mark-day-simple.dto';
+import { MarkWeekSimpleDto } from './dto/mark-week-simple.dto';
 import { ProgressService } from './services/progress.service';
 import { JwtGuard } from '../../auth/guards/jwt/jwt.guard';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -1584,5 +1587,163 @@ export class RoutinesController {
   ) {
     const userId = req.user.sub;
     return await this.progressService.getUserProgress(userId, routineId);
+  }
+
+  // ===== ENDPOINTS SIMPLIFICADOS PARA MARCAR PROGRESO =====
+
+  @Patch('mark/exercise')
+  @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Marcar/Desmarcar Ejercicio (Simple)',
+    description: 'Marca o desmarca un ejercicio como completado solo con su UUID. Por defecto isCompleted=true, pero puedes enviar false para desmarcar.'
+  })
+  @ApiBody({
+    type: MarkExerciseSimpleDto,
+    description: 'UUID del ejercicio a marcar como completado',
+    examples: {
+      ejercicioCompletado: {
+        summary: 'Marcar Ejercicio como Completado',
+        value: {
+          exerciseId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true
+        }
+      },
+      ejercicioDesmarcado: {
+        summary: 'Desmarcar Ejercicio',
+        value: {
+          exerciseId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: false
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ejercicio marcado como completado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        exercise_id: { type: 'string', example: 'uuid-del-ejercicio' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Ejercicio no encontrado' })
+  async markExerciseSimple(
+    @Body() markDto: MarkExerciseSimpleDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markExerciseSimple(userId, markDto.exerciseId, markDto.isCompleted ?? true);
+  }
+
+  @Patch('mark/day')
+  @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Marcar/Desmarcar Día (Simple)',
+    description: 'Marca o desmarca un día como completado solo con su UUID. Por defecto isCompleted=true, pero puedes enviar false para desmarcar.'
+  })
+  @ApiBody({
+    type: MarkDaySimpleDto,
+    description: 'UUID del día a marcar como completado',
+    examples: {
+      diaCompletado: {
+        summary: 'Marcar Día como Completado',
+        value: {
+          dayId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true
+        }
+      },
+      diaDesmarcado: {
+        summary: 'Desmarcar Día',
+        value: {
+          dayId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: false
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Día marcado como completado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        day_id: { type: 'string', example: 'uuid-del-dia' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Día no encontrado' })
+  async markDaySimple(
+    @Body() markDto: MarkDaySimpleDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markDaySimple(userId, markDto.dayId, markDto.isCompleted ?? true);
+  }
+
+  @Patch('mark/week')
+  @UseGuards(JwtGuard)
+  @ApiOperation({
+    summary: 'Marcar/Desmarcar Semana (Simple)',
+    description: 'Marca o desmarca una semana como completada solo con su UUID. Por defecto isCompleted=true, pero puedes enviar false para desmarcar.'
+  })
+  @ApiBody({
+    type: MarkWeekSimpleDto,
+    description: 'UUID de la semana a marcar como completada',
+    examples: {
+      semanaCompletada: {
+        summary: 'Marcar Semana como Completada',
+        value: {
+          weekId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: true
+        }
+      },
+      semanaDesmarcada: {
+        summary: 'Desmarcar Semana',
+        value: {
+          weekId: '123e4567-e89b-12d3-a456-426614174000',
+          isCompleted: false
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Semana marcada como completada exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', example: 'uuid-de-progreso' },
+        user_id: { type: 'string', example: 'uuid-del-usuario' },
+        week_id: { type: 'string', example: 'uuid-de-la-semana' },
+        isCompleted: { type: 'boolean', example: true },
+        completedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        createdAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' },
+        updatedAt: { type: 'string', example: '2024-01-15T16:00:00.000Z' }
+      }
+    }
+  })
+  @ApiResponse({ status: 400, description: 'Datos de entrada inválidos' })
+  @ApiResponse({ status: 404, description: 'Semana no encontrada' })
+  async markWeekSimple(
+    @Body() markDto: MarkWeekSimpleDto,
+    @Request() req: any
+  ) {
+    const userId = req.user.sub;
+    return await this.progressService.markWeekSimple(userId, markDto.weekId, markDto.isCompleted ?? true);
   }
 }

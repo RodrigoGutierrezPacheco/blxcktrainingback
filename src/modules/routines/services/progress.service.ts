@@ -423,4 +423,153 @@ export class ProgressService {
       exercises: exerciseProgress
     };
   }
+
+  // ===== MÉTODOS SIMPLIFICADOS =====
+
+  async markExerciseSimple(userId: string, exerciseId: string, isCompleted: boolean = true): Promise<UserExerciseProgress> {
+    // Verificar que el ejercicio existe y pertenece a una rutina del usuario
+    const exercise = await this.exerciseRepository.findOne({
+      where: { id: exerciseId },
+      relations: ['day', 'day.week', 'day.week.routine']
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Ejercicio no encontrado');
+    }
+
+    // Verificar que el usuario tiene esta rutina asignada
+    const userRoutine = await this.userRoutineRepository.findOne({
+      where: {
+        user_id: userId,
+        routine_id: exercise.day.week.routine.id,
+        isActive: true
+      }
+    });
+
+    if (!userRoutine) {
+      throw new BadRequestException('No tienes acceso a este ejercicio');
+    }
+
+    // Buscar o crear el progreso del ejercicio
+    let progress = await this.exerciseProgressRepository.findOne({
+      where: {
+        user_id: userId,
+        exercise_id: exerciseId
+      }
+    });
+
+    if (progress) {
+      // Actualizar progreso existente
+      progress.isCompleted = isCompleted;
+      progress.completedAt = isCompleted ? new Date() : null;
+      return await this.exerciseProgressRepository.save(progress);
+    } else {
+      // Crear nuevo progreso
+      progress = this.exerciseProgressRepository.create({
+        user_id: userId,
+        exercise_id: exerciseId,
+        isCompleted: isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      });
+      return await this.exerciseProgressRepository.save(progress);
+    }
+  }
+
+  async markDaySimple(userId: string, dayId: string, isCompleted: boolean = true): Promise<UserDayProgress> {
+    // Verificar que el día existe y pertenece a una rutina del usuario
+    const day = await this.dayRepository.findOne({
+      where: { id: dayId },
+      relations: ['week', 'week.routine']
+    });
+
+    if (!day) {
+      throw new NotFoundException('Día no encontrado');
+    }
+
+    // Verificar que el usuario tiene esta rutina asignada
+    const userRoutine = await this.userRoutineRepository.findOne({
+      where: {
+        user_id: userId,
+        routine_id: day.week.routine.id,
+        isActive: true
+      }
+    });
+
+    if (!userRoutine) {
+      throw new BadRequestException('No tienes acceso a este día');
+    }
+
+    // Buscar o crear el progreso del día
+    let progress = await this.dayProgressRepository.findOne({
+      where: {
+        user_id: userId,
+        day_id: dayId
+      }
+    });
+
+    if (progress) {
+      // Actualizar progreso existente
+      progress.isCompleted = isCompleted;
+      progress.completedAt = isCompleted ? new Date() : null;
+      return await this.dayProgressRepository.save(progress);
+    } else {
+      // Crear nuevo progreso
+      progress = this.dayProgressRepository.create({
+        user_id: userId,
+        day_id: dayId,
+        isCompleted: isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      });
+      return await this.dayProgressRepository.save(progress);
+    }
+  }
+
+  async markWeekSimple(userId: string, weekId: string, isCompleted: boolean = true): Promise<UserWeekProgress> {
+    // Verificar que la semana existe y pertenece a una rutina del usuario
+    const week = await this.weekRepository.findOne({
+      where: { id: weekId },
+      relations: ['routine']
+    });
+
+    if (!week) {
+      throw new NotFoundException('Semana no encontrada');
+    }
+
+    // Verificar que el usuario tiene esta rutina asignada
+    const userRoutine = await this.userRoutineRepository.findOne({
+      where: {
+        user_id: userId,
+        routine_id: week.routine.id,
+        isActive: true
+      }
+    });
+
+    if (!userRoutine) {
+      throw new BadRequestException('No tienes acceso a esta semana');
+    }
+
+    // Buscar o crear el progreso de la semana
+    let progress = await this.weekProgressRepository.findOne({
+      where: {
+        user_id: userId,
+        week_id: weekId
+      }
+    });
+
+    if (progress) {
+      // Actualizar progreso existente
+      progress.isCompleted = isCompleted;
+      progress.completedAt = isCompleted ? new Date() : null;
+      return await this.weekProgressRepository.save(progress);
+    } else {
+      // Crear nuevo progreso
+      progress = this.weekProgressRepository.create({
+        user_id: userId,
+        week_id: weekId,
+        isCompleted: isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      });
+      return await this.weekProgressRepository.save(progress);
+    }
+  }
 }
