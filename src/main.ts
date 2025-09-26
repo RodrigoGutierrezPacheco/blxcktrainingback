@@ -13,7 +13,7 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get<string>("ALLOWED_ORIGINS")?.split(",") || [
       "http://localhost:5173",
-      "https://tudominio.com",
+      "https://blxcktraining2-0.vercel.app/",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
@@ -56,19 +56,14 @@ async function bootstrap() {
   // Aplicar interceptor de validación global
   app.useGlobalInterceptors(new ValidationInterceptor());
 
-  const PORT = process.env.PORT || configService.get<number>("PORT") || 8000;
-
-  // Solución: Manejo explícito de la promesa
-  await app
-    .listen(PORT)
-    .then(() => {
-      console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-      console.log(`📚 Documentación Swagger en http://localhost:${PORT}/api`);
-    })
-    .catch((error) => {
-      console.error("Error al iniciar el servidor:", error);
-      process.exit(1);
-    });
+  // ✅ USO CORRECTO DEL PUERTO
+  const PORT = process.env.PORT || 8000;
+  
+  // ✅ FORMA CORRECTA DE INICIAR EL SERVIDOR
+  await app.listen(PORT, '0.0.0.0'); // '0.0.0.0' es importante para Railway
+  
+  console.log(`🚀 Servidor corriendo en el puerto: ${PORT}`);
+  console.log(`📚 Documentación Swagger disponible en: http://0.0.0.0:${PORT}/api`);
 }
 
 // Inicio de la aplicación con manejo de errores
