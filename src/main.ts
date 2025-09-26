@@ -56,7 +56,7 @@ async function bootstrap() {
   // Aplicar interceptor de validación global
   app.useGlobalInterceptors(new ValidationInterceptor());
 
-  const PORT = configService.get<number>("PORT") || 8000;
+  const PORT = process.env.PORT || configService.get<number>("PORT") || 8000;
 
   // Solución: Manejo explícito de la promesa
   await app
