@@ -28,39 +28,85 @@ import { MediaAsset } from "src/modules/media-assets/entities/media-asset.entity
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: "postgres",
-        host: configService.get<string>("DB_HOST", "localhost"),
-        port: configService.get<number>("DB_PORT", 5432),
-        username: configService.get<string>("DB_USERNAME", "postgres"),
-        password: configService.get<string>("DB_PASSWORD"),
-        database: configService.get<string>("DB_NAME", "blxcktraining_db"),
-        entities: [
-          User, 
-          Trainer, 
-          Admin, 
-          NormalUser, 
-          UserBase, 
-          UserTrainer,
-          Routine,
-          Week,
-          Day,
-          RoutineExercise,
-          UserRoutine,
-          UserExerciseProgress,
-          UserDayProgress,
-          UserWeekProgress,
-          UserRoutineProgress,
-          Plan,
-          MuscleGroup,
-          Exercise,
-          TrainerVerificationDocument,
-          TrainerEducationDocument,
-          MediaAsset
-        ],
-        synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
-        logging: configService.get<boolean>("DB_LOGGING", false),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const databaseUrl = configService.get<string>("DATABASE_URL");
+        
+        if (databaseUrl) {
+          // Usar DATABASE_URL de Railway
+          return {
+            type: "postgres",
+            url: databaseUrl,
+            entities: [
+              User, 
+              Trainer, 
+              Admin, 
+              NormalUser, 
+              UserBase, 
+              UserTrainer,
+              Routine,
+              Week,
+              Day,
+              RoutineExercise,
+              UserRoutine,
+              UserExerciseProgress,
+              UserDayProgress,
+              UserWeekProgress,
+              UserRoutineProgress,
+              Plan,
+              MuscleGroup,
+              Exercise,
+              TrainerVerificationDocument,
+              TrainerEducationDocument,
+              MediaAsset
+            ],
+            synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
+            logging: configService.get<boolean>("DB_LOGGING", false),
+            ssl: {
+              rejectUnauthorized: false
+            },
+            extra: {
+              connectionTimeoutMillis: 10000,
+              idleTimeoutMillis: 30000,
+              max: 20
+            }
+          };
+        }
+        
+        // Fallback a variables individuales para desarrollo local
+        return {
+          type: "postgres",
+          host: configService.get<string>("DB_HOST", "localhost"),
+          port: configService.get<number>("DB_PORT", 5432),
+          username: configService.get<string>("DB_USERNAME", "postgres"),
+          password: configService.get<string>("DB_PASSWORD"),
+          database: configService.get<string>("DB_NAME", "blxcktraining_db"),
+          entities: [
+            User, 
+            Trainer, 
+            Admin, 
+            NormalUser, 
+            UserBase, 
+            UserTrainer,
+            Routine,
+            Week,
+            Day,
+            RoutineExercise,
+            UserRoutine,
+            UserExerciseProgress,
+            UserDayProgress,
+            UserWeekProgress,
+            UserRoutineProgress,
+            Plan,
+            MuscleGroup,
+            Exercise,
+            TrainerVerificationDocument,
+            TrainerEducationDocument,
+            MediaAsset
+          ],
+          synchronize: configService.get<boolean>("DB_SYNCHRONIZE", false),
+          logging: configService.get<boolean>("DB_LOGGING", false),
+        };
+      },
     }),
   ],
   exports: [TypeOrmModule],
