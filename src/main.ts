@@ -19,7 +19,7 @@ async function bootstrap() {
   app.enableCors({
     origin: configService.get<string>("ALLOWED_ORIGINS")?.split(",") || [
       "http://localhost:5173",
-      "https://blxcktraining2-0.vercel.app/",
+      "https://blxcktraining2-0.vercel.app",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
